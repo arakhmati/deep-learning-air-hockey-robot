@@ -1,6 +1,6 @@
-[submodule "air_hockey"]
-    path = air_hockey
-    url = https://bitbucket.org/akhmed-rakhmati/air_hockey
-[submodule "gym-air_hockey"]
-    path = gym-air_hockey
-    url = https://bitbucket.org/akhmed-rakhmati/gym-air_hockey
+[submodule "air-hockey"]
+    path = air-hockey
+    url = https://bitbucket.org/akhmed-rakhmati/air-hockey
+[submodule "gym-air-hockey"]
+    path = gym-air-hockey
+    url = https://bitbucket.org/akhmed-rakhmati/gym-air-hockey

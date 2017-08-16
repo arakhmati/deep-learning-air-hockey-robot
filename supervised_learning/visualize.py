@@ -1,6 +1,5 @@
 import os
 import cv2
-import glob
 import h5py
 import progressbar
 import matplotlib.pyplot as plt
