@@ -37,7 +37,7 @@ def load_data(data_file=project_path+'/data.h5'):
             return images, bottom_ai_labels
             
 
-def train_network(model_file, batch_size = 5000):
+def train_network(model_file, batch_size=5000):
     
     if os.path.exists(model_file):
         print('Choose a different model file or delete the file with the chosen name')
