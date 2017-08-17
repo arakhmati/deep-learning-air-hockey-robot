@@ -10,9 +10,6 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import confusion_matrix
 
 project_path = os.path.dirname(os.path.realpath(__file__))
-data_file = project_path + '/data.h5'
-
-batch_size = 5000
 
 def build_model():
     image_input = Input(shape=(128, 128, 3), dtype=np.float32, name='input')
@@ -22,53 +19,55 @@ def build_model():
     pool2  = MaxPooling2D(3, name='pool2')(conv2)
     flat   = Flatten(name='flatten')(pool2)
     dense1 = Dense(100, activation='relu', name='dense1')(flat)
-    
-    x0 = Dense(50, activation='relu',    name='x0')(dense1)
-    x1 = Dense(3,  activation='softmax', name='x1')(x0)
-
-    y0 = Dense(50, activation='relu',    name='y0')(dense1)
-    y1 = Dense(3,  activation='softmax', name='y1')(y0)
+    output = Dense(9, activation='softmax', name='output')(dense1)
   
-    model = Model(inputs=[image_input], outputs=[x1, y1])
+    model = Model(inputs=[image_input], outputs=output)
     model.compile(loss='categorical_crossentropy',  optimizer='adam', metrics=['accuracy'])
-    print(model.summary())
     return model
 
-with h5py.File(data_file, 'r') as f:
-    images = f['images'][:]
-    top_ai_labels = f['top_ai_labels'][:]
-    bottom_ai_labels = f['bottom_ai_labels'][:]
-    
-enc = OneHotEncoder(3)
-enc.fit([[0, 0], [1, 1], [2, 2]])   
+def load_data(data_file=project_path+'/data.h5'):
+    with h5py.File(data_file, 'r') as f:
+        images = f['images'][:]
+        top_ai_labels = f['top_ai_labels'][:]
+        bottom_ai_labels = f['bottom_ai_labels'][:] 
+        
+        if 'top' in data_file:
+            return images, top_ai_labels
+        elif 'bottom' in data_file:
+            return images, bottom_ai_labels
+            
 
-def train_network(labels, file_name):
+def train_network(model_file, batch_size = 5000):
+    
+    if os.path.exists(model_file):
+        print('Choose a different model file or delete the file with the chosen name')
+        return
+    
     model = build_model()
+    print(model.summary())
+    
+    enc = OneHotEncoder(9)
+    enc = enc.fit([[0], [1], [2], [3], [4], [5], [6], [7], [8]])
+    enc.transform([[0], [1], [2], [3], [4], [5], [6], [7], [8]]).toarray()
+    
+    images, labels = load_data()
+    
     for epoch in range(15):
         for i in range(images.shape[0]//batch_size):
             print(epoch, i)
         
-            images_batch = ((images[i*batch_size:(i+1)*batch_size]).astype(np.float32)-0)/255
-            labels_batch = labels[i*batch_size:(i+1)*batch_size] + 1
+            images_batch = ((images[i*batch_size:(i+1)*batch_size]).astype(np.float32)-128)/128
+            labels_batch =  enc.transform(labels[i*batch_size:(i+1)*batch_size] + 1)
             
             images_train, images_test, labels_train, labels_test = train_test_split(images_batch, labels_batch, test_size=0.2)
             
-            one_hot_encoded_labels_train = enc.transform(labels_train).toarray()
-            x_train = one_hot_encoded_labels_train[:, :3]
-            y_train = one_hot_encoded_labels_train[:, 3:]
+            model.fit([images_train], [labels_train], epochs=1, batch_size=128, validation_split=0.2)
             
-            one_hot_encoded_labels_test = enc.transform(labels_test).toarray()
-            x_test = one_hot_encoded_labels_test[:, :3]
-            y_test = one_hot_encoded_labels_test[:, 3:]
+            labels_pred = model.predict([images_test], batch_size=64)
             
+            print(confusion_matrix(np.argmax(labels_test, axis=1), np.argmax(labels_pred, axis=1)))
             
-            model.fit([images_train], [x_train, y_train], epochs=1, batch_size=128, validation_split=0.2)
-            
-            x_pred, y_pred = model.predict([images_test], batch_size=64)
-            
-            print(confusion_matrix(np.argmax(x_test, axis=1), np.argmax(x_pred, axis=1)))
-            print(confusion_matrix(np.argmax(y_test, axis=1), np.argmax(y_pred, axis=1)))
-    model.save(file_name)
+        model.save(model_file)
     
-train_network(top_ai_labels,    'top_ai_model.h5')
-train_network(bottom_ai_labels, 'bottom_ai_model.h5')
+train_network('top_ai_model.h5')
+train_network('bottom_ai_model.h5')
