@@ -2,11 +2,23 @@ import os
 import h5py
 import numpy as np
 
-from sklearn.preprocessing import OneHotEncoder
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import confusion_matrix
+import keras.callbacks
 
-from gym_air_hockey import build_model
+from gym_air_hockey import build_model, DataProcessor
+
+
+import numpy
+import pandas
+from keras.models import Sequential
+from keras.layers import Dense
+from keras.wrappers.scikit_learn import KerasClassifier
+from keras.utils import np_utils
+from sklearn.model_selection import cross_val_score
+from sklearn.model_selection import KFold
+from sklearn.preprocessing import LabelEncoder
+from sklearn.pipeline import Pipeline
 
 project_path = os.path.dirname(os.path.realpath(__file__))
 
@@ -26,38 +38,42 @@ def load_data(data_file=None, bottom=True):
             
         return frames, labels
             
-def train_network(model_file, batch_size=5000):
+    
+if __name__ == "__main__":
+    batch_size = 10000
+    model_file = 'bottom_ai_model.h5'
+    n_epochs = 100
+#def train_network(model_file, batch_size=5000):
         
 #    if os.path.exists(model_file):
 #        print('Choose a different model file or delete the file with the chosen name')
 #        return
     
+    processor = DataProcessor()
+    
     model = build_model()
     print(model.summary())
     
-    frames, labels = load_data()
+    callbacks = []
+    callbacks.append(keras.callbacks.EarlyStopping(monitor='val_loss', min_delta=0.0001, patience=25, verbose=1, mode='auto'))
+    callbacks.append(keras.callbacks.TensorBoard(log_dir='./Graph', histogram_freq=1, write_graph=True, write_images=True))
     
-    for epoch in range(15):
-        for i in range(frames.shape[0]//batch_size):
-            print(epoch, i)
-        
-            frames_batch = frames[i*batch_size:(i+1)*batch_size]
-            frames_batch = (frames_batch.astype(np.float32) - 0) / 256
-            labels_batch_indices = labels[i*batch_size:(i+1)*batch_size]
-            
-            labels_batch = np.zeros((batch_size, 9), dtype=np.float32)
-            for i in range(labels_batch.shape[0]):
-                labels_batch[i, labels_batch_indices[i]] = 1
-            
-            frames_train, frames_test, labels_train, labels_test = train_test_split(frames_batch, labels_batch, test_size=0.2)
-            
-            model.fit(frames_train, labels_train, epochs=1, batch_size=128, validation_split=0.2)
-            
-            labels_pred = model.predict(frames_test, batch_size=64)
-            
-            print(confusion_matrix(np.argmax(labels_test, axis=1), np.argmax(labels_pred, axis=1)))
-            
-        model.save(model_file)
+    frames, labels_indices = load_data()
     
-train_network('top_ai_model.h5')
-train_network('bottom_ai_model.h5')
+    frames = processor.normalize_observation(frames)
+    labels = np.zeros((labels_indices.shape[0], 9), dtype=np.float32)
+    for i in range(labels.shape[0]):
+        labels[i, labels_indices[i]] = 1
+    
+    frames_train, frames_test, labels_train, labels_test = train_test_split(frames, labels, test_size=0.1)
+    
+    model.fit(frames_train, labels_train, epochs=n_epochs, batch_size=32, 
+          validation_split=0.1, verbose=1, callbacks=callbacks)
+    labels_pred = model.predict(frames_test, batch_size=64)
+    print(confusion_matrix(np.argmax(labels_test, axis=1), np.argmax(labels_pred, axis=1)))
+    
+            
+    model.save(model_file)
+    
+#train_network('top_ai_model.h5')
+#train_network('bottom_ai_model.h5')

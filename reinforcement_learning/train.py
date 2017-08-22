@@ -12,13 +12,13 @@ if __name__ == "__main__":
 
     env = gym.make('AirHockey-v0')
     
-#    model = load_model('rl_model.h5')
-    model = gym_air_hockey.build_model()
-    policy = EpsGreedyQPolicy(eps=0.5)
-    memory = SequentialMemory(limit=1000, window_length=1)
-    nb_steps_warm_up = 1000
+    model = load_model('../supervised_learning/bottom_ai_model.h5')
+#    model = gym_air_hockey.build_model()
+    policy = EpsGreedyQPolicy(eps=0.01)
+    memory = SequentialMemory(limit=2000, window_length=1)
+    nb_steps_warm_up = 2000
     target_model_update = 1e-2
-    enable_double_dqn = True
+    enable_double_dqn = False
     
     nb_steps = 200000
     nb_max_episode_steps = 75

@@ -15,15 +15,15 @@ if __name__ == "__main__":
     air_hockey = AirHockey()
     processor = DataProcessor()
     
-    frames = np.zeros((number_of_frames, processor.dim, processor.dim, 3), dtype=np.float32)
-    top_ai_moves    = np.zeros(number_of_frames, dtype=np.int8)
+    frames = np.zeros((number_of_frames, processor.dim, processor.dim, 3), dtype=np.uint8)
+    top_ai_moves    = np.zeros(number_of_frames, dtype=np.uint8)
     bottom_ai_moves = np.zeros(number_of_frames, dtype=np.int8)
 
     bar = progressbar.ProgressBar(max_value=number_of_frames)
     for i in range(number_of_frames):
         if any([event.type == pygame.QUIT for event in pygame.event.get()]): break
-        frame, _ = air_hockey.step()
-        frames[i]           = processor.resize_observation(frame)
+        frame, _           = air_hockey.step()
+        frames[i]          = processor.resize_observation(frame)
         top_ai_moves[i]    = processor.action_to_label(air_hockey.top_ai.force)
         bottom_ai_moves[i] = processor.action_to_label(air_hockey.bottom_ai.force)
         bar.update(i)
