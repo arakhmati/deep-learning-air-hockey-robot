@@ -30,61 +30,78 @@ import h5py
 import matplotlib.pyplot as plt
 from keras.models import load_model
 
+def conv_layer(layer_input, weight, bias):
+    layer_output = np.zeros((layer_input.shape[0] - weight.shape[0] + 1, layer_input.shape[1] - weight.shape[1] + 1, 
+                            weight.shape[3]), dtype=np.float32)
+    for i in range(layer_output.shape[2]):
+        for j in range(layer_input.shape[2]):
+            for k in range(layer_input.shape[0] - weight.shape[0] + 1):
+                for l in range(layer_input.shape[1] - weight.shape[1] + 1):
+                    layer_output[k, l, i] += (layer_input[k:k+weight.shape[0], l:l+weight.shape[1], j]*weight[:, :, j, i]).sum()
+        layer_output[:, :, i] += bias[i]
+        layer_output[:, :, i][layer_output[:, :, i] < 0] = 0 # Relu
+    return layer_output
+
+def pool_layer(layer_input, size=3):
+    layer_output = np.zeros((layer_input.shape[0]//size, layer_input.shape[1]//size, layer_input.shape[2]), dtype=np.float32)
+    indices = np.zeros((layer_input.shape[0]//size, layer_input.shape[1]//size, layer_input.shape[2], 2), dtype=np.int32)
+    for i in range(layer_output.shape[2]):
+        for j in range(layer_output.shape[0]):
+            for k in range(layer_output.shape[1]):
+                slice_of_input = layer_input[j*size:j*size+size, k*size:k*size+size, i]
+                max_index = np.where(slice_of_input == slice_of_input.max())
+                indices[j, k, i] = np.array([max_index[0][0], max_index[1][0]]) + np.array([j*size, k*size])
+                layer_output[j, k ,i] = slice_of_input.max()
+    return layer_output, indices
+
+def flatten(layer_input):
+    layer_output  = layer_input.flatten()
+    layer_output  = layer_output.reshape((1, layer_output.shape[0]))
+    return layer_output
+
+def dense_layer(layer_input, weight, bias, activation='relu'):
+    layer_output = layer_input.dot(weight) + bias
+    if activation is 'relu':
+        layer_output[layer_output < 0] = 0
+    elif activation is 'sigmoid':
+        layer_output = 1/(1+np.exp(-layer_output))
+    elif activation is 'softmax':
+        z_exp = np.exp(layer_output)
+        layer_output = z_exp / z_exp.sum()
+    return layer_output
+
+def unpool(layer_input, indices, shape):
+    layer_output = np.zeros(shape, dtype=np.float32)
+    for i in range(layer_input.shape[2]):
+        for j in range(layer_input.shape[0]):
+            for k in range(layer_input.shape[1]):
+                layer_output[:,:,i][indices[j, k, i]] = layer_input[j, k, i]
+    return layer_output
+
+def deconv(layer_input, weight, bias):
+    layer_input[:, :, :][layer_input[:, :, :] < 0] = 0 # Relu
+    layer_output = np.zeros((layer_input.shape[0] + weight.shape[0] - 1, layer_input.shape[1] + weight.shape[1] - 1, 
+                            weight.shape[2]), dtype=np.float32)
+    for i in range(layer_input.shape[2]):
+        for j in range(layer_output.shape[2]):
+            for k in range(layer_output.shape[0] - weight.shape[0] + 1):
+                for l in range(layer_output.shape[1] - weight.shape[1] + 1):
+                    layer_output[k:k+weight.shape[0], l:l+weight.shape[1], j] += (layer_input[k, l, i] * weight[:, :, j, i].transpose())
+    return layer_output
+
 if __name__ == "__main__":
     
     model = load_model('bottom_ai_model.h5')
-#    model = build_model()
     
     with h5py.File('frame.h5', 'r') as f:
         frame = f['frame'][:]
     
-    weights = np.copy(model.get_weights())
+    weights = np.copy(model.get_weights())   
     
-    
-    def conv_layer(layer_input, weight, bias):
-        layer_output = np.zeros((layer_input.shape[0] - weight.shape[0] + 1, layer_input.shape[1] - weight.shape[1] + 1, 
-                                weight.shape[3]), dtype=np.float32)
-        for i in range(layer_output.shape[2]):
-            for j in range(layer_input.shape[2]):
-                for k in range(layer_input.shape[0] - weight.shape[0] + 1):
-                    for l in range(layer_input.shape[1] - weight.shape[1] + 1):
-                        layer_output[k, l, i] += (layer_input[k:k+weight.shape[0], l:l+weight.shape[1], j]*weight[:, :, j, i]).sum()
-            layer_output[:, :, i] += bias[i]
-            layer_output[:, :, i][layer_output[:, :, i] < 0] = 0 # Relu
-        return layer_output
-    
-    def pool_layer(layer_input, size=3):
-        layer_output = np.zeros((layer_input.shape[0]//size, layer_input.shape[1]//size, layer_input.shape[2]), dtype=np.float32)
-        indices = np.zeros((layer_input.shape[0]//size, layer_input.shape[1]//size, layer_input.shape[2], 2), dtype=np.int32)
-        for i in range(layer_output.shape[2]):
-            for j in range(layer_output.shape[0]):
-                for k in range(layer_output.shape[1]):
-                    slice_of_input = layer_input[j*size:j*size+size, k*size:k*size+size, i]
-                    max_index = np.where(slice_of_input == slice_of_input.max())
-                    indices[j, k, i] = np.array([max_index[0][0], max_index[1][0]]) + np.array([j*size, k*size])
-                    layer_output[j, k ,i] = slice_of_input.max()
-        return layer_output, indices
-    
-    def flatten(layer_input):
-        layer_output  = layer_input.flatten()
-        layer_output  = layer_output.reshape((1, layer_output.shape[0]))
-        return layer_output
-    
-    def dense_layer(layer_input, weight, bias, activation='relu'):
-        layer_output = layer_input.dot(weight) + bias
-        if activation is 'relu':
-            layer_output[layer_output < 0] = 0
-        elif activation is 'sigmoid':
-            layer_output = 1/(1+np.exp(-layer_output))
-        elif activation is 'softmax':
-            z_exp = np.exp(layer_output)
-            layer_output = z_exp / z_exp.sum()
-        return layer_output
-
     conv1                 = conv_layer(frame, weights[0], weights[1])
     pool1, pool1_indices  = pool_layer(conv1)
     conv2                 = conv_layer(pool1, weights[2], weights[3])
-    pool2, pool2_indices  = pool_layer(conv2, 2)
+#    pool2, pool2_indices  = pool_layer(conv2, 2)
 #    flat   = flatten(pool2)
 #    dense1 = dense_layer(flat,   weights[4],  weights[5])
 #    dense2 = dense_layer(dense1, weights[6],  weights[7])
@@ -93,31 +110,23 @@ if __name__ == "__main__":
 #    
 #    keras_out = model.predict(frame.reshape((1,128,128,3)))
     
-    w = np.copy(weights[2][:,:,0,0])
-    weights[2][:, :, :, :] = 0
-    weights[2][:, :, 0, 0] = w
-                
-    def unpool(layer_input, indices, shape):
-        layer_output = np.zeros(shape, dtype=np.float32)
-        for i in range(layer_input.shape[2]):
-            for j in range(layer_input.shape[0]):
-                for k in range(layer_input.shape[1]):
-                    print(indices[j, k, i])
-                    layer_output[:,:,i][indices[j, k, i]] = layer_input[j, k, i]
-        return layer_output
-    
-    def deconv(layer_input, weight, bias):
-        layer_input[:, :, :][layer_input[:, :, :] < 0] = 0 # Relu
-        layer_output = np.zeros(shape, dtype=np.float32)
-        for i in range(layer_input.shape[2]):
-            for j in range(layer_input.shape[0]):
-                for k in range(layer_input.shape[1]):
-                    print(indices[j, k, i])
-                    layer_output[:,:,i][indices[j, k, i]] = layer_input[j, k, i]
-        return layer_output
-    
-    unpool1 = unpool(pool2, pool2_indices, conv2.shape)
-        
+    for idx in range(weights[2].shape[2]):
+        for jdx in range(weights[2].shape[3]):
+            
+            w = np.copy(weights[2][:, :, idx, jdx])
+            weights[2][:, :, :, :] = 0
+            weights[2][:, :, idx, jdx] = w
+                        
+        #    
+            deconv2 = deconv(conv2,   weights[2], weights[3])
+            unpool1 = unpool(deconv2, pool1_indices, conv1.shape)
+            deconv1 = deconv(unpool1, weights[0], weights[1])
+            
+            plt.imshow(frame)  
+            plt.show()
+            plt.imshow(deconv1) 
+            plt.show()
+            weights = np.copy(model.get_weights())
     
     
     
