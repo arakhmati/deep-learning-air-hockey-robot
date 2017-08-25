@@ -17,7 +17,7 @@ if __name__ == "__main__":
     
     model = load_model('bottom_ai_model.h5', {'fmeasure': fmeasure, 'recall': recall, 'precision': precision})
     
-    action = [0, 0]
+    action = np.array([0, 0])
     
     frames = np.zeros((1, 10, 128, 128, 3), dtype=np.float32)
     
@@ -33,10 +33,9 @@ if __name__ == "__main__":
         
         
         
-        if i >= 5:
-            action = np.argmax(model.predict(frame.reshape(1,128,128,3))[0])
+#        if i >= 5:
+        action = processor.process_action(np.argmax(model.predict(frame.reshape(1,128,128,3))[0]))
 #            print(frames)
-        print(action)
         i += 1
         
     

@@ -63,20 +63,27 @@ def fmeasure(y_true, y_pred):
     """
     return fbeta_score(y_true, y_pred, beta=1)
 
-def conv_model(l1=0.00000, l2=0.00001):
+def conv_model(l1=0.00000, l2=0.0001):
     model = Sequential([
-                Conv2D(8, 12, activation='relu', name='conv1', kernel_regularizer=regularizers.l2(l2),
+                Conv2D(16, 12, activation='relu', name='conv1', kernel_regularizer=regularizers.l2(l2),
                        input_shape=(128, 128, 3)),
+                Dropout(0.2, name='dropout1'),
                 MaxPooling2D(2, name='pool1'),
-                Conv2D(12, 7, activation='relu', name='conv2', kernel_regularizer=regularizers.l2(l2)),
+                Conv2D(24, 7, activation='relu', name='conv2', kernel_regularizer=regularizers.l2(l2)),
+                Dropout(0.2, name='dropout2'),
                 MaxPooling2D(2, name='pool2'),
-                Conv2D(16, 5, activation='relu', name='conv3', kernel_regularizer=regularizers.l2(l2)),
+                Conv2D(32, 5, activation='relu', name='conv3', kernel_regularizer=regularizers.l2(l2)),
+                Dropout(0.2, name='dropout3'),
                 MaxPooling2D(2, name='pool4'),
                 Flatten(name='flatten'),
-                Dense(128, activation='relu',    name='dense1', kernel_regularizer=regularizers.l2(l2)),
-                Dense(512, activation='relu',    name='dense2', kernel_regularizer=regularizers.l2(l2)),
-                Dense(256, activation='relu',    name='dense3', kernel_regularizer=regularizers.l2(l2)),
-                Dense(128, activation='relu',    name='dense4', kernel_regularizer=regularizers.l2(l2)),
+                Dense(512, activation='relu',    name='dense1', kernel_regularizer=regularizers.l2(l2)),
+                Dropout(0.2, name='dropout4'),
+                Dense(256, activation='relu',    name='dense2', kernel_regularizer=regularizers.l2(l2)),
+                Dropout(0.2, name='dropout5'),
+                Dense(128, activation='relu',    name='dense3', kernel_regularizer=regularizers.l2(l2)),
+                Dropout(0.2, name='dropout6'),
+                Dense(64, activation='relu',    name='dense4', kernel_regularizer=regularizers.l2(l2)),
+#                Dropout(0.1, name='dropout7'),
                 Dense(9,   activation='softmax', name='out', kernel_regularizer=regularizers.l2(l2))
                 ])
     model.compile(loss='categorical_crossentropy',  optimizer='adam', 
