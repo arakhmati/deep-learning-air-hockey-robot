@@ -11,7 +11,7 @@ data_file = project_path + '/data.h5'
 with h5py.File(data_file, 'r') as f:
     frames = f['frames'][:]
 
-frames = np.uint8(frames)
+frames = np.uint8(frames*256)
     
 number_of_frames, height, width, _ = frames.shape  
 

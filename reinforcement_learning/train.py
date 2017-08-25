@@ -13,7 +13,6 @@ if __name__ == "__main__":
     env = gym.make('AirHockey-v0')
     
     model = load_model('../supervised_learning/bottom_ai_model.h5')
-#    model = gym_air_hockey.build_model()
     policy = EpsGreedyQPolicy(eps=0.01)
     memory = SequentialMemory(limit=2000, window_length=1)
     nb_steps_warm_up = 2000
