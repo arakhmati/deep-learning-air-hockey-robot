@@ -83,7 +83,7 @@ def conv_model(l1=0.00000, l2=0.0001):
                 Dense(128, activation='relu',    name='dense3', kernel_regularizer=regularizers.l2(l2)),
                 Dropout(0.2, name='dropout6'),
                 Dense(64, activation='relu',    name='dense4', kernel_regularizer=regularizers.l2(l2)),
-#                Dropout(0.1, name='dropout7'),
+                Dropout(0.1, name='dropout7'),
                 Dense(9,   activation='softmax', name='out', kernel_regularizer=regularizers.l2(l2))
                 ])
     model.compile(loss='categorical_crossentropy',  optimizer='adam', 
@@ -99,12 +99,12 @@ def convlstm_model(l1=0.00000, l2=0.00000):
                 Conv2D(16, 5, activation='relu', name='conv3'),
                 MaxPooling2D(2, name='pool4'),
                 Flatten(name='flatten'),
-                Dense(512, activation='relu',    name='dense1'),
-                Dense(256, activation='relu',    name='dense2'),
-                Dense(128, activation='relu',    name='dense3'),
+                Dense(64, activation='relu',    name='dense1'),
+                Dense(64, activation='relu',    name='dense2'),
+                Dense(64, activation='relu',    name='dense3'),
                 Dense(64,  activation='relu',    name='dense4'),
                 Dense(9,   activation='softmax', name='out')
                 ])
     model.compile(loss='categorical_crossentropy',  optimizer='adam', 
-                  metrics=['accuracy'])
+                  metrics=['accuracy', fmeasure, recall, precision])
     return model

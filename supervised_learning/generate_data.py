@@ -10,7 +10,7 @@ from gym_air_hockey import DataProcessor
 project_path = os.path.dirname(os.path.realpath(__file__))
 
 if __name__ == "__main__":
-    number_of_frames = 15000
+    number_of_frames = 300
     
     air_hockey = AirHockey()
     processor = DataProcessor()
@@ -28,7 +28,7 @@ if __name__ == "__main__":
         if i % 1000 == 0:
             air_hockey.reset()
     
-    with h5py.File(project_path + '/data.h5', 'w') as f:
+    with h5py.File(project_path + ('/data_%d.h5' % number_of_frames) , 'w') as f:
         f.create_dataset('frames', data=frames)
         f.create_dataset('labels', data=labels)
     

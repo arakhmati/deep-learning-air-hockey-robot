@@ -3,10 +3,10 @@ import pygame
 import numpy as np
 
 from keras.models import load_model
+from model import fmeasure, recall, precision
 from air_hockey import AirHockey
 from gym_air_hockey import DataProcessor
 
-from model import fmeasure, recall, precision
 
 project_path = os.path.dirname(os.path.realpath(__file__))
 
@@ -15,11 +15,11 @@ if __name__ == "__main__":
     air_hockey = AirHockey()
     processor = DataProcessor()
     
-    model = load_model('bottom_ai_model.h5', {'fmeasure': fmeasure, 'recall': recall, 'precision': precision})
+    model = load_model('conv.h5', {'fmeasure': fmeasure, 'recall': recall, 'precision': precision})
     
-    action = np.array([0, 0])
+    action = None
     
-    frames = np.zeros((1, 10, 128, 128, 3), dtype=np.float32)
+#    frames = np.zeros((1, 10, 128, 128, 3), dtype=np.float32)
     
     i = 0
     while True:
@@ -28,8 +28,8 @@ if __name__ == "__main__":
         frame, _ = air_hockey.step(action)
         frame = processor.process_observation(frame)
         
-        frames[0][1:] = frames[0][:-1]
-        frames[0][0] = frame
+#        frames[0][1:] = frames[0][:-1]
+#        frames[0][0] = frame
         
         
         

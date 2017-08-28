@@ -44,14 +44,27 @@ class Conv2D:
                                       input_shape[2] - self.weight.shape[1] + 1, 
                                       self.weight.shape[3]), dtype=np.float32)
         
+        self.n_in  = input_shape[3]
+        self.n_out = self.layer_output.shape[2]
+        
+        self.height_out = input_shape[1] - self.weight.shape[0] + 1
+        self.width_out  = input_shape[2] - self.weight.shape[1] + 1
+        
+        self.kernel_dim = self.weight.shape[0]
+        
+        self.temp = np.zeros((self.kernel_dim, self.kernel_dim), dtype = np.float32)
+        
     def feedforward(self, layer_input):
         self.layer_output.fill(0)
-        for i in range(self.layer_output.shape[2]):
-            for j in range(layer_input.shape[2]):
-                for k in range(layer_input.shape[0] - self.weight.shape[0] + 1):
-                    for l in range(layer_input.shape[1] - self.weight.shape[1] + 1):
-                        self.layer_output[k, l, i] += \
-                        (layer_input[k:k+self.weight.shape[0], l:l+self.weight.shape[1], j]*self.weight[:, :, j, i]).sum()
+        
+        
+        
+        for i in range(self.n_out):
+            for j in range(self.n_in):
+                for k in range(self.height_out):
+                    for l in range(self.width_out):
+                        self.temp = (layer_input[k:k+self.kernel_dim, l:l+self.kernel_dim, j]*self.weight[:, :, j, i])
+                        self.layer_output[k, l, i] += self.temp.sum()
             self.layer_output[:, :, i] += self.bias[i]
             self.layer_output[:, :, i][self.layer_output[:, :, i] < 0] = 0 # Relu
         return self.layer_output
@@ -147,38 +160,45 @@ def from_keras_model(keras_model):
 
 if __name__ == "__main__":
     
-    keras_model = load_model('bottom_ai_model.h5', {'fmeasure': fmeasure, 'recall': recall, 'precision': precision})
+    keras_model = load_model('conv.h5', {'fmeasure': fmeasure, 'recall': recall, 'precision': precision})
     model = from_keras_model(keras_model)
     
     with h5py.File('data_10.h5', 'r') as f:
         frames = f['frames'][:]
         
     frame = frames[9]
+    import time
     
     out = np.copy(frame)
     for layer in model:
+#        tic = time.time()
         out = layer.feedforward(out)
+#        toc = time.time()
+#        print(toc - tic)
         
-    keras_out = keras_model.predict(frame.reshape((1,128,128,3)))
+#    tic = time.time()
+#    keras_out = keras_model.predict(frame.reshape((1,128,128,3)))
+#    toc = time.time()
+#    print(toc - tic)
     
-#    for idx in range(weights[2].shape[2]):
-#        for jdx in range(weights[2].shape[3]):
-#            
-#            w = np.copy(weights[2][:, :, idx, jdx])
-#            weights[2][:, :, :, :] = 0
-#            weights[2][:, :, idx, jdx] = w
-#                        
-#        #    
-#            deconv2 = deconv(conv2,   weights[2], weights[3])
-#            unpool1 = unpool(deconv2, pool1_indices, conv1.shape)
-#            deconv1 = deconv(unpool1, weights[0], weights[1])
-#            
-#            plt.imshow(frame)  
-#            plt.show()
-#            plt.imshow(deconv1) 
-#            plt.show()
-#            weights = np.copy(model.get_weights())
-    
+    deconvolved_weights = np.copy(model[4].weight)
+    for idx in range(model[4].weight.shape[2]):
+        for jdx in range(model[4].weight.shape[3]):
+            
+            deconvolved_weights.fill(0)
+            deconvolved_weights[:, :, idx, jdx] = np.copy(model[4].weight[:, :, idx, jdx])
+                        
+            deconv3 = deconv(model[4].layer_output, deconvolved_weights, model[4].bias)
+            unpool2 = unpool(deconv3, model[3].indices, model[2].layer_output.shape)
+            deconv2 = deconv(model[2].layer_output,  model[2].weight, model[2].bias)
+            unpool1 = unpool(deconv2, model[1].indices, model[0].layer_output.shape)
+            deconv1 = deconv(unpool1, model[0].weight, model[0].bias)
+            
+            plt.imshow(frame)  
+            plt.show()
+            plt.imshow(deconv1) 
+            plt.show()
+#    
     
     
     
