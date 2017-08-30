@@ -8,19 +8,23 @@ from rl.memory import SequentialMemory
 import gym
 import gym_air_hockey
 
+import sys
+sys.path.append('../supervised_learning')
+from model import fmeasure, recall, precision
+
 if __name__ == "__main__":
 
     env = gym.make('AirHockey-v0')
     
-    model = load_model('../supervised_learning/bottom_ai_model.h5')
-    policy = EpsGreedyQPolicy(eps=0.01)
+    model = load_model('../supervised_learning/conv.h5', {'fmeasure': fmeasure, 'recall': recall, 'precision': precision})
+    policy = EpsGreedyQPolicy(eps=0.1)
     memory = SequentialMemory(limit=2000, window_length=1)
-    nb_steps_warm_up = 2000
-    target_model_update = 1e-2
-    enable_double_dqn = False
+    nb_steps_warm_up = 100
+    target_model_update = 1
+    enable_double_dqn = True
     
-    nb_steps = 200000
-    nb_max_episode_steps = 75
+    nb_steps = 2000000
+    nb_max_episode_steps = 150
     
     dqn = DQNAgent(model=model, policy=policy, memory=memory, nb_actions=env.nb_actions, 
                    nb_steps_warmup=nb_steps_warm_up, enable_double_dqn=enable_double_dqn,
@@ -29,5 +33,5 @@ if __name__ == "__main__":
     
     dqn.fit(env, nb_steps=nb_steps, nb_max_episode_steps=nb_max_episode_steps, verbose=9)
     
-    dqn.model.save('rl_model.h5')
+    dqn.model.save('rl_conv.h5')
     dqn.test(env, nb_episodes=5)

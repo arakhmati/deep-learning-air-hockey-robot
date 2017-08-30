@@ -4,7 +4,6 @@ import matplotlib.pyplot as plt
 from keras.models import load_model
 import keras.layers
 from model import fmeasure, recall, precision
-
 '''
 Decide which filter activation you want to visualize. Pass the image forward through the conv net, 
 up to and including the layer where your chosen activation is.
@@ -167,14 +166,11 @@ if __name__ == "__main__":
         frames = f['frames'][:]
         
     frame = frames[9]
-    import time
     
     out = np.copy(frame)
     for layer in model:
 #        tic = time.time()
         out = layer.feedforward(out)
-#        toc = time.time()
-#        print(toc - tic)
         
 #    tic = time.time()
 #    keras_out = keras_model.predict(frame.reshape((1,128,128,3)))
@@ -190,13 +186,12 @@ if __name__ == "__main__":
                         
             deconv3 = deconv(model[4].layer_output, deconvolved_weights, model[4].bias)
             unpool2 = unpool(deconv3, model[3].indices, model[2].layer_output.shape)
-            deconv2 = deconv(model[2].layer_output,  model[2].weight, model[2].bias)
+            deconv2 = deconv(unpool2, model[2].weight, model[2].bias)
             unpool1 = unpool(deconv2, model[1].indices, model[0].layer_output.shape)
             deconv1 = deconv(unpool1, model[0].weight, model[0].bias)
             
-            plt.imshow(frame)  
-            plt.show()
             plt.imshow(deconv1) 
+            plt.title(str(idx) + ' ' + str(jdx))
             plt.show()
 #    
     

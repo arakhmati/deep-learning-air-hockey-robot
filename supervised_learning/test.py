@@ -18,26 +18,10 @@ if __name__ == "__main__":
     model = load_model('conv.h5', {'fmeasure': fmeasure, 'recall': recall, 'precision': precision})
     
     action = None
-    
-#    frames = np.zeros((1, 10, 128, 128, 3), dtype=np.float32)
-    
-    i = 0
     while True:
-
         if any([event.type == pygame.QUIT for event in pygame.event.get()]): break
-        frame, _ = air_hockey.step(action)
-        frame = processor.process_observation(frame)
-        
-#        frames[0][1:] = frames[0][:-1]
-#        frames[0][0] = frame
-        
-        
-        
-#        if i >= 5:
+        game_info = air_hockey.step(action)
+        frame = processor.process_observation(game_info.frame) 
         action = processor.process_action(np.argmax(model.predict(frame.reshape(1,128,128,3))[0]))
-#            print(frames)
-        i += 1
-        
-    
     pygame.quit()
         

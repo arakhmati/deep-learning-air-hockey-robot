@@ -10,7 +10,7 @@ from gym_air_hockey import DataProcessor
 project_path = os.path.dirname(os.path.realpath(__file__))
 
 if __name__ == "__main__":
-    number_of_frames = 300
+    number_of_frames = 40000
     
     air_hockey = AirHockey()
     processor = DataProcessor()
