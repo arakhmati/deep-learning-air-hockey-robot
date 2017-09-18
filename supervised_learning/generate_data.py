@@ -1,5 +1,6 @@
 import os
 import h5py
+import time
 import pygame
 import numpy as np
 import progressbar
@@ -21,14 +22,14 @@ if __name__ == "__main__":
     bar = progressbar.ProgressBar(max_value=number_of_frames)
     for i in range(number_of_frames):
         if any([event.type == pygame.QUIT for event in pygame.event.get()]): break
-        frame, _  = air_hockey.step()
-        frames[i] = processor.process_observation(frame)
+        game_info  = air_hockey.step()
+        frames[i] = processor.process_observation(game_info.frame)
         labels[i] = processor.action_to_label(air_hockey.bottom_ai.force)
         bar.update(i)
         if i % 1000 == 0:
             air_hockey.reset()
     
-    with h5py.File(project_path + ('/data_%d.h5' % number_of_frames) , 'w') as f:
+    with h5py.File(project_path + ('/data/%d_%d.h5' % (int(time.time()), number_of_frames)) , 'w') as f:
         f.create_dataset('frames', data=frames)
         f.create_dataset('labels', data=labels)
     

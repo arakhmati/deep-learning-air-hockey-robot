@@ -15,7 +15,7 @@ if __name__ == "__main__":
     air_hockey = AirHockey()
     processor = DataProcessor()
     
-    model = load_model('conv.h5', {'fmeasure': fmeasure, 'recall': recall, 'precision': precision})
+    model = load_model('model.h5', {'fmeasure': fmeasure, 'recall': recall, 'precision': precision})
     
     action = None
     while True:

@@ -18,9 +18,9 @@ if __name__ == "__main__":
     
     model = load_model('../supervised_learning/conv.h5', {'fmeasure': fmeasure, 'recall': recall, 'precision': precision})
     policy = EpsGreedyQPolicy(eps=0.1)
-    memory = SequentialMemory(limit=2000, window_length=1)
-    nb_steps_warm_up = 100
-    target_model_update = 1
+    memory = SequentialMemory(limit=300, window_length=1)
+    nb_steps_warm_up = 250
+    target_model_update = 1e-2
     enable_double_dqn = True
     
     nb_steps = 2000000

@@ -2,8 +2,9 @@ import h5py
 import time
 import numpy as np
 
-from sklearn.metrics import confusion_matrix
+import argparse
 
+from sklearn.metrics import confusion_matrix
 from keras.callbacks import TensorBoard
 from keras.utils.np_utils import to_categorical
 
@@ -13,7 +14,7 @@ from model import fmeasure, recall, precision
 
 def load_data(data_file=None, bottom=True):
     if data_file is None:
-        data_file = 'data_40000.h5'
+        data_file = 'data/1505438557_40000.h5'
     
     with h5py.File(data_file, 'r') as f:
         frames = f['frames'][:]
@@ -31,11 +32,18 @@ def prepare_for_lstm(frames, labels, lookback=5):
     return new_frames, new_labels
     
 if __name__ == "__main__":
+    
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-f', '--data_file', help='Name of the data file with training data')
+    args = parser.parse_args()
+    data_file = args.data_file
+    print(data_file)
+    
     batch_size_train = 128
     batch_size_test  = 32
     n_epochs = 200
     
-    frames, labels = load_data()
+    frames, labels = load_data(data_file)
     labels = to_categorical(labels)
         
 #    frames, labels = prepare_for_lstm(frames, labels)
@@ -49,7 +57,7 @@ if __name__ == "__main__":
 #    labels = c[:, size//length:].reshape(labels.shape)
 #    np.random.shuffle(c)
          
-    model = load_model('conv.h5', {'fmeasure': fmeasure, 'recall': recall, 'precision': precision})
+    model = load_model('model.h5', {'fmeasure': fmeasure, 'recall': recall, 'precision': precision})
     print(model.summary())
     
     callbacks = []
