@@ -4,3 +4,6 @@
 [submodule "gym-air-hockey"]
     path = gym-air-hockey
     url = https://bitbucket.org/akhmed-rakhmati/gym-air-hockey
+[submodule "air-hockey-app"]
+    path = air-hockey-app
+    url = https://bitbucket.org/akhmed-rakhmati/air-hockey-app
