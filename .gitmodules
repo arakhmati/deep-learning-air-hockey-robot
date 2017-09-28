@@ -6,4 +6,4 @@
     url = https://bitbucket.org/akhmed-rakhmati/gym-air-hockey
 [submodule "Perception"]
     path = Perception
-    url = https://bitbucket.org/akhmed-rakhmati/Perception
+    url = https://bitbucket.org/akhmed-rakhmati/perception
