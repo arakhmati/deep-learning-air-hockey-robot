@@ -1,9 +1,9 @@
 [submodule "air-hockey"]
     path = air-hockey
-    url = https://bitbucket.org/akhmed-rakhmati/air-hockey
+    url = https://github.com/arakhmat/air-hockey
 [submodule "gym-air-hockey"]
     path = gym-air-hockey
-    url = https://bitbucket.org/akhmed-rakhmati/gym-air-hockey
+    url = https://github.com/arakhmat/gym-air-hockey
 [submodule "perception"]
 	path = perception
-	url = https://bitbucket.org/akhmed-rakhmati/perception
+	url = https://github.com/arakhmat/perception
