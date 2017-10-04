@@ -4,9 +4,6 @@
 [submodule "gym-air-hockey"]
     path = gym-air-hockey
     url = https://bitbucket.org/akhmed-rakhmati/gym-air-hockey
-[submodule "Perception"]
-    path = Perception
-    url = https://bitbucket.org/akhmed-rakhmati/perception
 [submodule "perception"]
 	path = perception
 	url = https://bitbucket.org/akhmed-rakhmati/perception
