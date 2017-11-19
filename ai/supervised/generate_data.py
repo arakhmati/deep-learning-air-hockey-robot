@@ -1,0 +1,78 @@
+import os
+import h5py
+import time
+import json
+import pygame
+import datetime
+import numpy as np
+import progressbar
+
+from air_hockey import AirHockey
+from gym_air_hockey import DataProcessor
+
+current_dir = os.path.dirname(os.path.realpath(__file__))
+data_dir = current_dir + '/data/'
+
+if __name__ == "__main__":
+    dt = 2
+    lookback = 3
+    n_max_frames = 5000
+    
+    air_hockey = AirHockey()
+    processor = DataProcessor()
+    
+    frames = np.zeros((n_max_frames, lookback * 3, processor.dim, processor.dim), dtype=np.float32)
+    labels = np.zeros(n_max_frames, dtype=np.int8)
+    adversarial_labels = np.zeros(n_max_frames, dtype=np.int8)
+    
+    current_frame = np.zeros((lookback * 3, processor.dim, processor.dim), dtype=np.float32)
+    
+    def step():
+        game_info  = air_hockey.step(dt=dt)
+        frame = processor.process_observation(game_info.frame)
+        action = processor.action_to_label(game_info.action)
+        adversarial_action = processor.action_to_label(game_info.adversarial_action)
+        return {'frame': frame, 
+                'action': action,
+                'adversarial_action': adversarial_action,
+                'scored': game_info.scored}
+        
+    def reset():
+        # Fill in current_frame
+        for _ in range(lookback):
+            game_info = step()
+        return game_info
+            
+    game_info = reset()
+    bar = progressbar.ProgressBar(max_value=n_max_frames)
+    for i in range(n_max_frames):
+        if any([event.type == pygame.QUIT for event in pygame.event.get()]): break
+        
+        frames[i] = game_info['frame']
+        labels[i] = game_info['action']
+        adversarial_labels[i] = game_info['adversarial_action']
+        
+        game_info = step()
+        bar.update(i)
+        
+        if game_info['scored']:
+            air_hockey.reset()
+            game_info = reset()
+        
+    frames = frames[:i]
+    labels = labels[:i]
+    
+    def current_time():
+        return datetime.datetime.fromtimestamp(int(time.time())).strftime('%Y-%m-%d-%H-%M-%S')
+    
+    if not os.path.isdir(data_dir):
+        os.mkdir(data_dir)
+        
+    data_file = data_dir + ('%s_%d.h5' % (current_time(), i+1))
+    with h5py.File(data_file , 'w') as f:
+        f.create_dataset('frames', data=frames)
+        f.create_dataset('labels', data=labels)
+        f.create_dataset('adversarial_labels', data=adversarial_labels)
+    print('Saved generated frames to %s' % data_file)
+    
+        
