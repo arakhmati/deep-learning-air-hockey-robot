@@ -3,6 +3,7 @@ import h5py
 import time
 import json
 import pygame
+import argparse
 import datetime
 import numpy as np
 import progressbar
@@ -14,16 +15,26 @@ current_dir = os.path.dirname(os.path.realpath(__file__))
 data_dir = current_dir + '/data/'
 
 if __name__ == "__main__":
-    dt = 2
-    lookback = 3
-    n_max_frames = 5000
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-dt', '--dt', type=int, default=2,
+                        help='Time delta between consecutive frames')
+    parser.add_argument('-l', '--lookback', type=int, default=3,
+                        help='Number of frames to look in the past')
+    parser.add_argument('-n', '--n_frames', type=int, default=5000,
+                        help='Number of frames to be saved')
+    args = parser.parse_args()
+    
+    dt = args.dt
+    lookback = args.lookback
+    n_frames = args.n_frames
+    print('dt %d, lookback %d, n_frames %d' % (dt, lookback, n_frames))
     
     air_hockey = AirHockey()
     processor = DataProcessor()
     
-    frames = np.zeros((n_max_frames, lookback * 3, processor.dim, processor.dim), dtype=np.float32)
-    labels = np.zeros(n_max_frames, dtype=np.int8)
-    adversarial_labels = np.zeros(n_max_frames, dtype=np.int8)
+    frames = np.zeros((n_frames, lookback * 3, processor.dim, processor.dim), dtype=np.float32)
+    labels = np.zeros(n_frames, dtype=np.int8)
+    adversarial_labels = np.zeros(n_frames, dtype=np.int8)
     
     current_frame = np.zeros((lookback * 3, processor.dim, processor.dim), dtype=np.float32)
     
@@ -44,8 +55,8 @@ if __name__ == "__main__":
         return game_info
             
     game_info = reset()
-    bar = progressbar.ProgressBar(max_value=n_max_frames)
-    for i in range(n_max_frames):
+    bar = progressbar.ProgressBar(max_value=n_frames)
+    for i in range(n_frames):
         if any([event.type == pygame.QUIT for event in pygame.event.get()]): break
         
         frames[i] = game_info['frame']
@@ -58,9 +69,6 @@ if __name__ == "__main__":
         if game_info['scored']:
             air_hockey.reset()
             game_info = reset()
-        
-    frames = frames[:i]
-    labels = labels[:i]
     
     def current_time():
         return datetime.datetime.fromtimestamp(int(time.time())).strftime('%Y-%m-%d-%H-%M-%S')
@@ -68,7 +76,9 @@ if __name__ == "__main__":
     if not os.path.isdir(data_dir):
         os.mkdir(data_dir)
         
-    data_file = data_dir + ('%s_%d.h5' % (current_time(), i+1))
+    print(labels, adversarial_labels)
+        
+    data_file = data_dir + ('%s_%d_%d_%d.h5' % (current_time(), dt, lookback, n_frames))
     with h5py.File(data_file , 'w') as f:
         f.create_dataset('frames', data=frames)
         f.create_dataset('labels', data=labels)

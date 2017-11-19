@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('-f', '--data_file', help='Name of the data file to visualize')
+    parser.add_argument('-f', '--data_file', help='Name of the data file to analyze')
     args = parser.parse_args()
     data_file = args.data_file
     frames, labels = load_data(data_file)
