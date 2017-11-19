@@ -5,5 +5,5 @@
     path = gym-air-hockey
     url = https://github.com/arakhmat/gym-air-hockey
 [submodule "perception"]
-	path = perception
-	url = https://github.com/arakhmat/perception
+    path = perception
+    url = https://github.com/arakhmat/perception
