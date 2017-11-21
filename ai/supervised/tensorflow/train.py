@@ -1,5 +1,7 @@
-import os, sys
+import os
 dir_path = os.path.dirname(os.path.realpath(__file__))
+
+import sys
 sys.path.append(dir_path + '/../utils')
 
 import time
@@ -17,17 +19,6 @@ from keras.models import load_model
 from model import fmeasure, recall, precision
 from data_utils import load_data
 
-
-#            
-#def prepare_for_lstm(frames, labels, lookback=5):
-#    n_samples, height, width, depth = frames.shape
-#    new_frames = np.zeros((n_samples-lookback, lookback, height, width, depth), dtype=np.float32)
-#    for i in range(0, n_samples-lookback):
-#        for j in range(lookback):
-#            new_frames[i, j] = frames[i + j]
-#    new_labels = labels[lookback:]
-#    return new_frames, new_labels
-    
 if __name__ == "__main__":
     
     parser = argparse.ArgumentParser()
@@ -41,8 +32,6 @@ if __name__ == "__main__":
     
     frames, labels = load_data(data_file)
     labels = to_categorical(labels, num_classes=9)
-        
-#    frames, labels = prepare_for_lstm(frames, labels)
 
     if os.path.exists('models/model.h5'):
         print('Model already exists. Loading...')
