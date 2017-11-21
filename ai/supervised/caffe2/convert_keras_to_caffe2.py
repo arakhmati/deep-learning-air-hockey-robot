@@ -1,7 +1,5 @@
 import os
-
 dir_path = os.path.dirname(os.path.realpath(__file__))
-
 os.environ['CUDA_DEVICE_ORDER'] = 'PCI_BUS_ID'
 os.environ['CUDA_VISIBLE_DEVICES'] = ''
 
@@ -9,59 +7,63 @@ import sys
 sys.path.append(dir_path + '/../utils')
 sys.path.append(dir_path + '/../tensorflow')
 
-from keras.models import load_model
-from model import fmeasure, recall, precision, conv_model
-
+import argparse
 import numpy as np
+from keras.models import load_model
 from caffe2.python import workspace
-import mobile_exporter
+from caffe2.python.predictor import mobile_exporter
 
 import keras_to_caffe2
-
-# Load keras model
-keras_model = load_model(dir_path + '/../tensorflow/models/model.h5', 
-                         {'fmeasure': fmeasure, 'recall': recall, 'precision': precision})
-#keras_model = conv_model()
-#print(keras_model.layers[0].get_weights())
+from model import fmeasure, recall, precision, conv_model
 
 
-# Copy from keras to caffe2
-caffe2_model = keras_to_caffe2.keras_to_caffe2(keras_model)
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-f', '--data_file', default=None, help='Name of the file to with test data')
+    args = parser.parse_args()
+    data_file = args.data_file
 
-# Generate random data
-frame = np.random.random_sample((1, 9, 128, 128)).astype(np.float32)
-
-# Test 
-keras_pred = keras_model.predict(frame)[0]
-workspace.FeedBlob('in', frame)
-workspace.RunNet(caffe2_model.net)
-caffe2_pred = workspace.FetchBlob('softmax')[0]
-
-for a, b in zip(keras_pred, caffe2_pred):
-    print('%e %e' % (a, b))
-print('%d %d' % (np.argmax(keras_pred), np.argmax(caffe2_pred)))
-
-
-## Test on a lot of data
-#from data_utils import load_data
-#import matplotlib.pyplot as plt
-#frames, labels = load_data('../data/2017-11-09-00-22-45_500.h5')
-#for i, frame in enumerate(frames):
-#    plt.imshow(frame[0:3].transpose((1, 2, 0)))
-#    plt.show()
-#    frame = frame.reshape(1, 9, 128, 128)
-#    print(frame.mean())
-#    keras_pred = keras_model.predict(frame)[0]
-#    
-#    workspace.FeedBlob('in', frame)
-#    workspace.RunNet(caffe2_model.net)
-#    caffe2_pred = workspace.FetchBlob('softmax')
-#    print(keras_pred, caffe2_pred)
-#    print('%d %d' % (np.argmax(keras_pred), np.argmax(caffe2_pred)))
-
-# Export caffe2 to Android
-init_net, predict_net = mobile_exporter.Export(workspace, caffe2_model.net, caffe2_model.params)
-with open('init_net.pb', 'wb') as f:
-    f.write(init_net.SerializeToString())
-with open('predict_net.pb', 'wb') as f:
-    f.write(predict_net.SerializeToString())
+    # Load keras model
+    keras_model = load_model(dir_path + '/../tensorflow/models/model.h5', 
+                             {'fmeasure': fmeasure, 'recall': recall, 'precision': precision})
+    #keras_model = conv_model()
+    #print(keras_model.layers[0].get_weights())
+    
+    # Copy from keras to caffe2
+    caffe2_model = keras_to_caffe2.keras_to_caffe2(keras_model)
+    
+    # Test 
+    if data_file != None: 
+        n_correct = 0
+        # Load Data
+        from data_utils import load_data
+        frames, labels = load_data(data_file)
+        
+        for frame in frames:
+            frame = frame.reshape((1, 9, 128, 128))
+            keras_pred = keras_model.predict(frame)[0]
+            workspace.FeedBlob('in', frame)
+            workspace.RunNet(caffe2_model.net)
+            caffe2_pred = workspace.FetchBlob('softmax')[0]
+            
+            def print_array(array):
+                for x in array:
+                    print('%e' % (x), end =' ')
+                print()
+            print_array(keras_pred)
+            print_array(caffe2_pred)
+            
+            keras_label = np.argmax(keras_pred)
+            caffe2_label = np.argmax(caffe2_pred)
+            match = keras_label == caffe2_label
+            print('%d %s %d' % (keras_label, '==' if match else '!=', caffe2_label))
+            
+            n_correct += match
+        print('%d correct out of %d' % (n_correct, frames.shape[0]))
+    
+    # Export caffe2 to Android
+    init_net, predict_net = mobile_exporter.Export(workspace, caffe2_model.net, caffe2_model.params)
+    with open('init_net.pb', 'wb') as f:
+        f.write(init_net.SerializeToString())
+    with open('predict_net.pb', 'wb') as f:
+        f.write(predict_net.SerializeToString())
