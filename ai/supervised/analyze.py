@@ -1,4 +1,3 @@
-import os, sys
 import argparse
 from utils.data_utils import load_data
 import matplotlib.pyplot as plt
@@ -11,7 +10,7 @@ if __name__ == '__main__':
     frames, labels = load_data(data_file)
     print(frames.max(), frames.min(), frames.mean())
     
-    direction = ['NW', 'W', 'SW', 'N', '', 'S', 'NE', 'E', 'SE']
+    direction = ['NW', 'W', 'SW', 'N', 'Stand', 'S', 'NE', 'E', 'SE']
     
     for frame_idx in range(frames.shape[0]):
         f, ax = plt.subplots(1, 3)
