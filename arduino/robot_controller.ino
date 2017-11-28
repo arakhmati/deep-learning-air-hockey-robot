@@ -1,36 +1,54 @@
 /*Bluetooth Module     MEGA2560
   RXD                TXD1(pin18)
-  TXD                RXD1(pin19)
+  TXD                RXD1(kpin19)
   VCC                5V
   GND                GND
-*/ 
-boolean toggle = false;
-void setup() {
-  pinMode(19, INPUT);  
-  digitalWrite(19, HIGH);
-  
-  //define 2 serial port
-  Serial.begin(9600);
-  Serial1.begin(9600); 
+*/
 
-  pinMode(13, OUTPUT);
+#define DELAY 1
+#define LED_PIN 13
+
+const char *actions[] {
+        "NW", "W", "SW", "N", "Stand", "S", "NE", "E", "SE"
+};
+
+boolean toggle = false;
+
+void setup()
+{
+  pinMode(LED_PIN, OUTPUT);
+
+  Serial.begin(115200);
+  Serial.print("Sketch:   ");   Serial.println(__FILE__);
+  Serial.print("Uploaded: ");   Serial.println(__DATE__);
+  Serial.println(" ");
+
+  Serial1.begin(115200);
+  Serial.println("BTserial started at 9600");
 
 }
 
-void loop() {
-  toggle = !toggle;
-  digitalWrite(13,toggle);
-  delay(500);
-  char c;
-  //the IDE send,phone receive
-  if (Serial.available()) {
-    c = Serial.read();
-     Serial1.print(c);
-  }
-  //the phone send ,IDE receive
-  if (Serial1.available()) {
-    printf("true1");
-    c = Serial1.read();
-    Serial.println(c);
-  }
+void loop()
+{
+
+    delay(1);
+    char c;
+    
+    if (Serial1.available()) {
+        c = Serial1.read();
+        if (isdigit(c)) {
+            int digit = c - 48; // ACSII to digit
+            if (digit < 9) {
+                Serial.write(actions[digit]);
+            }
+            else
+                Serial.write(c);
+        }
+        else {
+            Serial.write(c);
+        }
+        
+        toggle = !toggle;
+        digitalWrite(LED_PIN, toggle);
+    }
 }
