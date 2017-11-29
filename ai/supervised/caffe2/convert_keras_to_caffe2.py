@@ -14,7 +14,7 @@ from caffe2.python import workspace
 from caffe2.python.predictor import mobile_exporter
 
 import keras_to_caffe2
-from model import fmeasure, recall, precision, conv_model
+from model import fmeasure, recall, precision
 
 
 if __name__ == '__main__':
@@ -26,8 +26,6 @@ if __name__ == '__main__':
     # Load keras model
     keras_model = load_model(dir_path + '/../tensorflow/models/model.h5', 
                              {'fmeasure': fmeasure, 'recall': recall, 'precision': precision})
-    #keras_model = conv_model()
-    #print(keras_model.layers[0].get_weights())
     
     # Copy from keras to caffe2
     caffe2_model = keras_to_caffe2.keras_to_caffe2(keras_model)

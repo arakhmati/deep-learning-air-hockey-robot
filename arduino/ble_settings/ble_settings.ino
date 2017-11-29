@@ -25,7 +25,6 @@ void setup()
 
     long bt_baud = 115200;
     sprintf (buffer, "BTserial started at %ld", bt_baud);
-    
     Serial1.begin(bt_baud);  
     Serial.println(buffer);
 }
