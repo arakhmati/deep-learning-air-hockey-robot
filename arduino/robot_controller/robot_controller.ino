@@ -8,23 +8,24 @@
 #define DELAY 1
 #define LED_PIN 13
 
-const char *actions[] {
-        "NW", "W", "SW", "N", "Stand", "S", "NE", "E", "SE"
-};
+char buffer[100];
+const char * actions[] { "NW", "W", "SW", "N", "Stand", "S", "NE", "E", "SE" };
 
 boolean toggle = false;
 
 void setup()
 {
-  pinMode(LED_PIN, OUTPUT);
+    pinMode(LED_PIN, OUTPUT);
 
-  Serial.begin(115200);
-  Serial.print("Sketch:   ");   Serial.println(__FILE__);
-  Serial.print("Uploaded: ");   Serial.println(__DATE__);
-  Serial.println(" ");
+    Serial.begin(115200);
+    Serial.print("Sketch:   ");   Serial.println(__FILE__);
+    Serial.print("Uploaded: ");   Serial.println(__DATE__);
+    Serial.println(" ");
 
-  Serial1.begin(115200);
-  Serial.println("BTserial started at 9600");
+    long bt_baud = 115200;
+    sprintf (buffer, "BTserial started at %ld", bt_baud);
+    Serial1.begin(bt_baud);  
+    Serial.println(buffer);
 
 }
 
