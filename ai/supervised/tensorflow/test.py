@@ -20,7 +20,7 @@ if __name__ == "__main__":
     
     model = load_model('models/model.h5', {'fmeasure': fmeasure, 'recall': recall, 'precision': precision})
     
-    def step(action):
+    def step(action=4):
         action = processor.process_action(action)
         game_info  = air_hockey.step(action=action, dt=dt)
         frame = processor.process_observation(game_info.frame)
@@ -29,7 +29,7 @@ if __name__ == "__main__":
     def reset():
         # Fill in current_frame
         for _ in range(n_lookback):
-            frame = step(4)
+            frame = step()
         return frame
     
     frame = reset()

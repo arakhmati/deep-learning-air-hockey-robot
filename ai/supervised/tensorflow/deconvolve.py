@@ -37,119 +37,102 @@ made by the receptive field of the chosen activation.
 
 class Conv2D:
     def __init__(self, keras_layer):
-        weights = keras_layer.get_weights()
-        input_shape = keras_layer.input_shape
-
-        self.weight = weights[0]
-        self.bias   = weights[1]
-        self.layer_output = np.zeros((self.weight.shape[3],
-                                      input_shape[2] - self.weight.shape[0] + 1, 
-                                      input_shape[3] - self.weight.shape[1] + 1), dtype=np.float32)
         
-        self.n_in  = input_shape[1]
-        self.n_out = self.layer_output.shape[0]
+        self.weights = {'w': keras_layer.get_weights()[0],
+                        'b': keras_layer.get_weights()[1]} 
+        self.output = np.zeros(keras_layer.output_shape[1:], dtype=np.float32)
+        self.k = keras_layer.kernel_size[0]
         
-        self.height_out = input_shape[2] - self.weight.shape[0] + 1
-        self.width_out  = input_shape[3] - self.weight.shape[1] + 1
-        
-        self.kernel_dim = self.weight.shape[0]
-        
-    def feedforward(self, layer_input):
-        self.layer_output.fill(0)
-        
-        
-#        print(self.weight.shape)
-#        print(self.layer_output.shape)
-        
-        
-        for i in range(self.n_out):
-            for j in range(self.n_in):
-                for k in range(self.height_out):
-                    for l in range(self.width_out):
-                        temp = layer_input[j, k:k+self.kernel_dim, l:l+self.kernel_dim]*self.weight[:, :, j, i]
-                        self.layer_output[i, k, l] += temp.sum()
-            self.layer_output[i, :, :] += self.bias[i]
-            self.layer_output[i, :, :][self.layer_output[i, :, :] < 0] = 0 # Relu
-        return self.layer_output
+    def feedforward(self, x):
+        self.output.fill(0)
+        for i in range(self.output.shape[0]):
+            for j in range(x.shape[0]):
+                for k in range(self.output.shape[1]):
+                    for l in range(self.output.shape[2]):
+                        self.output[i, k, l] += \
+                            (x[j, k:k+self.k, l:l+self.k]*self.weights['w'][:, :, j, i]).sum()
+            self.output[i] += self.weights['b'][i]
+            self.output[i][self.output[i, :, :] < 0] = 0 # Relu
+        return self.output
 
 class MaxPooling2D:
     def __init__(self, keras_layer):
-        input_shape = keras_layer.input_shape
-        self.pool_size = keras_layer.pool_size[0]
-        
-        self.layer_output = np.zeros((input_shape[1], 
-                                      input_shape[2]//self.pool_size, 
-                                      input_shape[3]//self.pool_size), dtype=np.float32)
-        self.indices = np.zeros((input_shape[1], 
-                                 input_shape[2]//self.pool_size, 
-                                 input_shape[3]//self.pool_size, 2), dtype=np.int32)
+        input_shape = keras_layer.output_shape[1:]
+        output_shape = keras_layer.output_shape[1:]
+        self.p = keras_layer.pool_size[0]        
+        self.output = np.zeros((output_shape), dtype=np.float32)
+        self.indices = np.zeros(list(output_shape)+[2], dtype=np.int32)
        
-    def feedforward(self, layer_input):
-        for i in range(self.layer_output.shape[0]):
-            for j in range(self.layer_output.shape[1]):
-                for k in range(self.layer_output.shape[2]):
-                    slice_of_input = layer_input[i, j*self.pool_size:j*self.pool_size+self.pool_size, 
-                                                 k*self.pool_size:k*self.pool_size+self.pool_size]
-                    max_index = np.where(slice_of_input == slice_of_input.max())
-                    self.indices[i, j, k] = np.array([max_index[0][0], max_index[1][0]]) + \
-                                    np.array([j*self.pool_size, k*self.pool_size])
-                    self.layer_output[i, j, k] = slice_of_input.max()
-        return self.layer_output
+    def feedforward(self, x):
+        for i in range(x.shape[0]):
+            for j in range(0, x.shape[1]//2*2, self.p):
+                for k in range(0, x.shape[2]//2*2, self.p):
+                    slice_of_input = x[i, j:j+self.p, k:k+self.p]
+                    max_value = slice_of_input.max()
+                    self.output[i, j//self.p, k//self.p] = max_value
+                    max_index = np.where(slice_of_input == max_value)
+                    self.indices[i, j//self.p, k//self.p] = \
+                        np.array([max_index[0][0], max_index[1][0]]) + np.array([j, k])
+                    
+        return self.output
 
 class Flatten:
     def __init__(self, keras_layer):
-        self.layer_output = np.zeros(keras_layer.output_shape[1], dtype=np.float32)
+        pass
         
-    def feedforward(self, layer_input):
-        self.layer_output  = layer_input.flatten().reshape((1, -1))
-        return self.layer_output
+    def feedforward(self, x):
+        self.output  = x.flatten().reshape((1, -1))
+        return self.output
 
 class Dense:
     def __init__(self, keras_layer):
-        weights = keras_layer.get_weights()
-        self.weight = weights[0]
-        self.bias = weights[1]
-        self.activation = keras_layer.activation.__name__
-        self.layer_output = np.zeros((self.weight.shape[1]), dtype=np.float32)
         
-    def feedforward(self, layer_input):
-        self.layer_output = layer_input.dot(self.weight) + self.bias
+        self.weights = {'w': keras_layer.get_weights()[0],
+                        'b': keras_layer.get_weights()[1]}
+        self.activation = keras_layer.activation.__name__
+        self.output = np.zeros(keras_layer.output_shape[1:], dtype=np.float32)
+        
+    def feedforward(self, x):
+        self.output = x.dot(self.weights['w']) + self.weights['b']
         if self.activation is 'relu':
-            self.layer_output[self.layer_output < 0] = 0
+            self.output[self.output < 0] = 0
         elif self.activation is 'sigmoid':
-            self.layer_output = 1/(1+np.exp(-self.layer_output))
+            self.output = 1/(1+np.exp(-self.output))
         elif self.activation is 'softmax':
-            z_exp = np.exp(self.layer_output)
-            self.layer_output = z_exp / z_exp.sum()
+            z_exp = np.exp(self.output)
+            self.output = z_exp / z_exp.sum()
         else:
             raise Exception('Invalid activation')
-        return self.layer_output
+        return self.output
 
-def unpool(layer_input, indices, shape):
-    layer_output = np.zeros(shape, dtype=np.float32)
-    for i in range(layer_input.shape[0]):
-        for j in range(layer_input.shape[1]):
-            for k in range(layer_input.shape[2]):
-                layer_output[i,:,:][indices[i, j, k]] = layer_input[i, j, k]
-    return layer_output
+def unpool(x, indices, shape):
+    output = np.zeros(shape, dtype=np.float32)
+    for i in range(x.shape[0]):
+        for j in range(x.shape[1]):
+            for k in range(x.shape[2]):
+                jj, kk = indices[i, j, k]
+                output[i, jj, kk] = x[i, j, k]
+#        print(x[i])
+#        print(output[i])
+    return output
 
-def deconv(layer_input, weight, bias):
-    layer_input[:][layer_input < 0] = 0 # Relu
-    layer_output = np.zeros((weight.shape[2], 
-                             layer_input.shape[1] + weight.shape[0] - 1, 
-                             layer_input.shape[2] + weight.shape[1] - 1), dtype=np.float32)
-    for i in range(layer_input.shape[0]):
-        for j in range(layer_output.shape[0]):
-            for k in range(layer_input.shape[1]):
-                for l in range(layer_input.shape[2]):
-                    layer_output[j, k:k+weight.shape[0], l:l+weight.shape[1]] += (layer_input[i, k, l] * weight[:, :, j, i].transpose())
-    return layer_output
+def deconv(x, weights):
+    x[x < 0] = 0 # Relu
+    output = np.zeros((weights.shape[2], 
+                      x.shape[1] + weights.shape[0] - 1, 
+                      x.shape[2] + weights.shape[1] - 1), dtype=np.float32)
+    for i in range(x.shape[0]):
+        for j in range(output.shape[0]):
+            for k in range(x.shape[1]):
+                for l in range(x.shape[2]):
+                    output[j, k:k+weights.shape[0], l:l+weights.shape[1]] += \
+                        (x[i, k, l] * weights[:, :, j, i].transpose())
+    return output
 
 
 def from_keras_model(keras_model):
     
     model = []
-    
     for keras_layer in keras_model.layers:
         if isinstance(keras_layer, keras.layers.Conv2D):
             model.append(Conv2D(keras_layer))
@@ -201,7 +184,7 @@ def mnist_model():
         
         model.fit(x_train, y_train,
               batch_size=128,
-              epochs=20,
+              epochs=200,
               verbose=1,
               validation_data=(x_test, y_test))
         score = model.evaluate(x_test, y_test, verbose=0)
@@ -210,91 +193,94 @@ def mnist_model():
         
         model.save(model_file_name)
     
-    return model, x_train
+    return model, x_train, y_train
     
 
 if __name__ == "__main__":
     
-#    keras_model = load_model('model.h5', {'fmeasure': fmeasure, 'recall': recall, 'precision': precision})
-#    with h5py.File('../data/2017-11-09-00-21-14_10.h5', 'r') as f:
-#        frames = f['frames'][:]
+    keras_model = load_model('models/model.h5', {'fmeasure': fmeasure, 'recall': recall, 'precision': precision})
+    with h5py.File('../data/2017-11-19-04-18-11_2_3_100.h5', 'r') as f:
+        frames = f['frames'][:]
     
-    keras_model, frames = mnist_model()
-#    frame = frames[0].reshape((1,1,28,28))
-#    print(keras_model.predict(frame.reshape((1,1,28,28))))
-#    
-#    import tensorflow as tf
-#    config = tf.ConfigProto(device_count = {'GPU': 0})
-#    with tf.Session(config=config) as sess:
-#        print(tf.get_default_graph().get_operations())
-#        
-#        init = tf.constant(keras_model.layers[0].get_weights()[0])
-#        tf.get_variable('conv1_kernel:0', initializer=init)
-#        init = tf.constant(keras_model.layers[0].get_weights()[1])
-#        tf.get_variable('conv1_bias:0', initializer=init)
-#        
-#        
-#        
-#        sess.run(keras_model.layers[0], feed_dict={'conv1_input:0': frame})
-#        
-#        
+#    keras_model, frames, labels = mnist_model()
     model = from_keras_model(keras_model)
     
-    for i in range(50):
-        frame = frames[i]
-            
-        outputs = []
-        outputs.append(frame)
-        for layer in model:
-            outputs.append(layer.feedforward(outputs[-1]))
-        print(keras_model.predict(frame.reshape((1,1,28,28))).flatten())
-        print(outputs[-1].flatten())
-        print()
-        plt.imshow(frame.reshape((28,28))) 
-        plt.title(np.argmax(outputs[-1].flatten()))
-        plt.show()
-#        print(outputs[-1] == keras_model.predict(frame.reshape((1,1,28,28))))
-        
-        def plot(activations):
-            plt.figure(0)
-            n, h, w = activations.shape
-            n_cols = min(n, 8)
-            n_rows = n // n_cols
-            for i in range(n_rows):
-                for j in range(n_cols):
-                    plt.subplot2grid((n_rows, n_cols), (i,j))
-                    plt.imshow(activations[i*n_cols+j].reshape((h, w)))
-            plt.show()
-        
-#        for i in range(5):
+#    for i in range(6):
+#        frame = frames[i]
+#            
+#        outputs = []
+#        outputs.append(frame)
+#        for layer in model:
+#            outputs.append(layer.feedforward(outputs[-1]))
+#        print(keras_model.predict(frame.reshape((1,9,128,128))).flatten())
+#        print(outputs[-1].flatten())
+##        print(outputs[-1] == keras_model.predict(frame.reshape((1,1,28,28))))
+#        
+#        def plot(activations):
+#            plt.figure(0)
+#            n, h, w = activations.shape
+#            n_cols = min(n, 8)
+#            n_rows = n // n_cols
+#            for i in range(n_rows):
+#                for j in range(n_cols):
+#                    plt.subplot2grid((n_rows, n_cols), (i,j))
+#                    plt.imshow(activations[i*n_cols+j].reshape((h, w)))
+#            plt.show()
+#        
+#        for i in range(1, 7, 2):
+#            output = outputs[i]
+#            print(output.shape)
 #            plot(outputs[i])
-        
-#    tic = time.time()
-#    keras_out = keras_model.predict(frame.reshape((1,128,128,3)))
-#    toc = time.time()
-#    print(toc - tic)
+#        
+
+#    
+    frame = frames[73]
+#    label = labels[2]
     
-    deconvolved_weights = np.copy(model[2].weight)
-    print(model[2].weight.shape)
-    for idx in range(model[2].weight.shape[2]):
-        for jdx in range(model[2].weight.shape[3]):
+    outputs = []
+    outputs.append(frame)
+    for layer in model:
+#        print(outputs[-1])
+        outputs.append(layer.feedforward(outputs[-1]))
+#    print(keras_model.predict(frame.reshape((1,9,128,128))).flatten())
+#    print(outputs[-1].flatten())
+    
+    idx_l = 0
+    deconvolved_weights = np.zeros_like(model[idx_l].weights['w'])
+    for idx in range(model[idx_l].weights['w'].shape[2]):
+        for jdx in range(model[idx_l].weights['w'].shape[3]):
             
             deconvolved_weights.fill(0)
-            deconvolved_weights[:, :, idx, jdx] = np.copy(model[2].weight[:, :, idx, jdx])
+            deconvolved_weights[:, :, idx, jdx] = np.copy(model[idx_l].weights['w'][:, :, idx, jdx])
                         
-            deconv2 = deconv(model[2].layer_output, model[2].weight, model[2].bias)
-#            plt.imshow(deconv2[0].reshape((12,12))) 
+#            deconv2 = deconv(model[2].output, deconvolved_weights)
+#            unpool1 = unpool(deconv2, model[1].indices, model[0].output.shape)
+#            deconv1 = deconv(unpool1, model[0].weights['w'])#.reshape((28, 28))
+            deconv1 = deconv(model[0].output, deconvolved_weights)#.reshape((28, 28))
+            
+            def plot(activations):
+                plt.figure(0)
+                n, h, w = activations.shape
+                n_cols = min(n, 3)
+                n_rows = n // n_cols
+                for i in range(n_rows):
+                    for j in range(n_cols):
+                        plt.subplot2grid((n_rows, n_cols), (j,i))
+                        plt.imshow(activations[i*n_cols+j].reshape((h, w)))
+                plt.show()
+            plot(deconv1)
+            print('----------------------------------------------------------------------------------')
+            
+#            f, ax = plt.subplots(1, 3)
+#            ax[0].imshow(deconv1[0:3].transpose((1,2,0)))
+#            ax[1].imshow(deconv1[3:6].transpose((1,2,0)))
+#            ax[2].imshow(deconv1[6:9].transpose((1,2,0)))
+#            plt.show()
+        
+#            plt.imshow(deconv1) 
 #            plt.title(str(idx) + ' ' + str(jdx))
 #            plt.show()
-            unpool1 = unpool(deconv2, model[1].indices, model[0].layer_output.shape)
-#            print(unpool1.shape)
-            deconv1 = deconv(unpool1, model[0].weight, model[0].bias).reshape((28, 28))
-#            print(deconv1.shape)
-            
-            plt.imshow(deconv1) 
-            plt.title(str(idx) + ' ' + str(jdx))
-            plt.show()
-##    
+#    
     
     
     
