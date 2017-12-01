@@ -5,7 +5,7 @@ os.environ['CUDA_VISIBLE_DEVICES'] = ''
 
 import sys
 sys.path.append(dir_path + '/../utils')
-sys.path.append(dir_path + '/../tensorflow')
+sys.path.append(dir_path + '/../keras')
 
 import argparse
 import numpy as np
@@ -24,7 +24,7 @@ if __name__ == '__main__':
     data_file = args.data_file
 
     # Load keras model
-    keras_model = load_model(dir_path + '/../tensorflow/models/model.h5', 
+    keras_model = load_model(dir_path + '/../keras/models/model.h5', 
                              {'fmeasure': fmeasure, 'recall': recall, 'precision': precision})
     
     # Copy from keras to caffe2
