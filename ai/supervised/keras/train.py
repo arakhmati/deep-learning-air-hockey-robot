@@ -5,7 +5,7 @@ import sys
 sys.path.append(dir_path + '/../utils')
 
 import time
-import datetime
+from datetime import datetime
 import numpy as np
 
 import argparse
@@ -31,7 +31,7 @@ if __name__ == "__main__":
     n_epochs = 20
     
     frames, labels = load_data(data_file)
-    labels = to_categorical(labels, num_classes=9)
+    labels = to_categorical(labels, num_classes=10)
 
     if os.path.exists('models/model.h5'):
         print('Model already exists. Loading...')
@@ -42,7 +42,7 @@ if __name__ == "__main__":
     print(model.summary())
     
     def current_time():
-        return datetime.datetime.fromtimestamp(int(time.time())).strftime('%Y-%m-%d-%H-%M-%S')
+        return datetime.fromtimestamp(int(time.time())).strftime('%Y%m%d_%H%M%S')
     
     callbacks = []
     callbacks.append(TensorBoard(log_dir='tensorboard/' + current_time() + ' ' + data_file[:3], histogram_freq=1, write_graph=True, write_images=True))
@@ -62,4 +62,4 @@ if __name__ == "__main__":
     accuracy = np.count_nonzero(np.argmax(labels, axis=1) == np.argmax(predictions, axis=1)) / labels.shape[0]
     
     model.save('models/model.h5')
-    model.save('models/model_%02d.h5' % int(accuracy * 100))
+    model.save('models/model_%s_%02d.h5' % (current_time(), int(accuracy * 100)))
