@@ -9,14 +9,14 @@ import gym
 import gym_air_hockey
 
 import sys
-sys.path.append('../supervised/tensorflow')
+sys.path.append('../supervised/keras')
 from model import fmeasure, recall, precision
 
 if __name__ == "__main__":
 
     env = gym.make('AirHockey-v0')
     
-    model = load_model('../supervised/tensorflow/models/model.h5', {'fmeasure': fmeasure, 'recall': recall, 'precision': precision})
+    model = load_model('../supervised/keras/models/model.h5', {'fmeasure': fmeasure, 'recall': recall, 'precision': precision})
     policy = EpsGreedyQPolicy(eps=0.25) # eps - probability of exploration
     memory = SequentialMemory(limit=300, window_length=1)
     nb_steps_warm_up = 250
