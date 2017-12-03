@@ -10,6 +10,7 @@ import progressbar
 
 from air_hockey import AirHockey
 from gym_air_hockey import DataProcessor
+from utils.data_utils import save_data
 
 current_dir = os.path.dirname(os.path.realpath(__file__))
 data_dir = current_dir + '/data/'
@@ -79,10 +80,7 @@ if __name__ == "__main__":
     print(labels, adversarial_labels)
         
     data_file = data_dir + ('%s_%d_%d_%d.h5' % (current_time(), dt, lookback, n_frames))
-    with h5py.File(data_file , 'w') as f:
-        f.create_dataset('frames', data=frames)
-        f.create_dataset('labels', data=labels)
-        f.create_dataset('adversarial_labels', data=adversarial_labels)
+    save_data(data_file, frames, labels, adversarial_labels)
     print('Saved generated frames to %s' % data_file)
     
         
