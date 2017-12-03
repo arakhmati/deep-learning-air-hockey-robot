@@ -20,7 +20,7 @@ if __name__ == '__main__':
     with h5py.File(data_file, 'r') as f:
         frames = f['frames'][:]
     
-    frames = np.uint8(frames * 256)
+    frames = np.uint8(frames * 128 + 128)
     frames = np.concatenate((frames[:, :3], frames[:, 3:6], frames[:, 6:9]), axis=3)
     frames = frames.transpose((0, 2, 3, 1))
     n_frames, height, width, _ = frames.shape  

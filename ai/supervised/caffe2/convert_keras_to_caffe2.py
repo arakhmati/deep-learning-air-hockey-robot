@@ -1,9 +1,9 @@
 import os
-dir_path = os.path.dirname(os.path.realpath(__file__))
 os.environ['CUDA_DEVICE_ORDER'] = 'PCI_BUS_ID'
 os.environ['CUDA_VISIBLE_DEVICES'] = ''
 
 import sys
+dir_path = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(dir_path + '/../utils')
 sys.path.append(dir_path + '/../keras')
 
