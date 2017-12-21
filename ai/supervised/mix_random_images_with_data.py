@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import os
 import glob
 import random
@@ -27,27 +29,27 @@ if __name__ == "__main__":
         print('Mixing %s' % data_file)
         base_name = os.path.basename(data_file)
         base_name = base_name[:-3].split('_')
+    
+        size = int(int(base_name[-1]) * 1.1)
+        mixed_data_file = mixed_data_dir + '_'.join(base_name[:-1] + [str(size)]) + '.h5'
+        if os.path.exists(mixed_data_file):
+            print('%s already exists and will not be overwritten' % mixed_data_file)
+            continue
         
         frames, labels, adversarial_labels = load_data(data_file)
         n_frames = frames.shape[0]
         n_random = int(n_frames * 0.1)
-        n_mixed = n_frames + n_random
-        
-        mixed_data_file = mixed_data_dir + '_'.join(base_name[:-1] + [str(n_mixed)]) + '.h5'
-        if os.path.exists(mixed_data_file):
-            print('%s already exists and will not be overwritten' % mixed_data_file)
-            continue
         
         random_frames = np.zeros((n_random, lookback * 3, processor.dim, processor.dim), dtype=np.float32)
         random_labels = np.zeros(n_random, dtype=np.int8) + 9
         
         random.shuffle(images)
         
-
         for idx in range(len(images[:n_random])):
             try:
                 image = Image.open(images[idx])
             except:
+                print('Failed on %s' % images[idx])
                 os.remove(images[idx])
                 continue
             image = image.convert('RGB')
@@ -65,4 +67,4 @@ if __name__ == "__main__":
         adversarial_labels = adversarial_labels[permutation]
             
         save_data(mixed_data_file, frames, labels, adversarial_labels)
-        print('Saved mixed frames to %s' % mixed_data_file)  
+        print('Saved mixed frames to %s\n' % mixed_data_file)
