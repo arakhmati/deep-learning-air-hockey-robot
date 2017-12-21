@@ -3,6 +3,7 @@ os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"   # see issue #152
 os.environ["CUDA_VISIBLE_DEVICES"] = ""
 
 import h5py
+import argparse
 from keras.models import load_model
 
 from unveiler import Model
@@ -10,10 +11,15 @@ from metrics import fmeasure, recall, precision
 
 if __name__ == "__main__":
     
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-f', '--data_file', help='Name of the file with training data', required=True)
+    args = parser.parse_args()
+    data_file = args.data_file
+    
     keras_model = load_model('models/model.h5', 
          {'fmeasure': fmeasure, 'recall': recall, 'precision': precision})
     
-    with h5py.File('../mixed_data/2017-12-01-10-13-46_3_3_110.h5', 'r') as f:
+    with h5py.File(data_file, 'r') as f:
         frames = f['frames'][:]
         labels = f['labels'][:]
     

@@ -39,7 +39,7 @@ if __name__ == "__main__":
     else:
         print('Creating new model')
         model = conv_model()
-#    model.summary()
+    model.summary() 
     
     def current_time():
         return datetime.fromtimestamp(int(time.time())).strftime('%Y%m%d_%H%M%S')
