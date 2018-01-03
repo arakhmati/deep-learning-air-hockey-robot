@@ -5,11 +5,10 @@
   GND                GND
 */
 
-#define DELAY 1
 #define LED_PIN 13
 
 char buffer[100];
-const char * actions[] { "NW", "W", "SW", "N", "Stand", "S", "NE", "E", "SE" };
+const char * actions[] { "NW", "W", "SW", "N", "Stand", "S", "NE", "E", "SE", "Undefined" };
 
 boolean toggle = false;
 

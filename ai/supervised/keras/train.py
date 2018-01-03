@@ -10,57 +10,71 @@ import numpy as np
 
 import argparse
 
-from sklearn.metrics import confusion_matrix, classification_report
+from keras.models import load_model
 from keras.callbacks import TensorBoard
 from keras.utils.np_utils import to_categorical
+from sklearn.metrics import confusion_matrix, classification_report
 
-from model import conv_model
-from keras.models import load_model
-from model import fmeasure, recall, precision
 from data_utils import load_data
+from models import conv_model, fmeasure, recall, precision
+
+models_dir = 'models/'
+model_name = 'model'
+adversarial_model_name = 'adv_model'
+
+model_file = models_dir + model_name + '.h5'
+adversarial_model_file = models_dir + adversarial_model_name + '.h5'
 
 if __name__ == "__main__":
-    
+
     parser = argparse.ArgumentParser()
     parser.add_argument('-f', '--data_file', help='Name of the file with training data', required=True)
+    parser.add_argument('-e', '--n_epochs', help='Number of epochs', default=20)
     args = parser.parse_args()
     data_file = args.data_file
-    
+    n_epochs = args.n_epochs
+
     batch_size_train = 128
     batch_size_test  = 128
-    n_epochs = 20
-    
-    frames, labels, _ = load_data(data_file)
-    labels = to_categorical(labels, num_classes=10)
 
-    if os.path.exists('models/model.h5'):
-        print('Model already exists. Loading...')
-        model = load_model('models/model.h5', {'fmeasure': fmeasure, 'recall': recall, 'precision': precision})
+    frames, labels, adversarial_labels = load_data(data_file)
+    labels = to_categorical(labels, num_classes=10)
+    adversarial_labels = to_categorical(adversarial_labels, num_classes=10)
+
+    # Robot model
+    if os.path.exists(model_file):
+        print('Model already exists. Loading.')
+        model = load_model(model_file, {'fmeasure': fmeasure, 'recall': recall, 'precision': precision})
     else:
-        print('Creating new model')
+        print('Creating new model.')
         model = conv_model()
-    model.summary() 
-    
-    def current_time():
-        return datetime.fromtimestamp(int(time.time())).strftime('%Y%m%d_%H%M%S')
-    
-    callbacks = []
-    callbacks.append(TensorBoard(log_dir='tensorboard/' + current_time() + ' ' + data_file[:3], 
-                                 histogram_freq=1, write_graph=True, write_images=True))
-    
-    history = model.fit(frames, labels, 
-              epochs=n_epochs, 
-              batch_size=batch_size_train,
-              callbacks=callbacks,
-              # validation_split=0.2,
-              shuffle=True,
-              verbose=1)
-    
-    predictions = model.predict(frames, batch_size=batch_size_test)
-    print(confusion_matrix(np.argmax(labels, axis=1), np.argmax(predictions, axis=1)))
-    print(classification_report(np.argmax(labels, axis=1), np.argmax(predictions, axis=1)))
-    
-    accuracy = np.count_nonzero(np.argmax(labels, axis=1) == np.argmax(predictions, axis=1)) / labels.shape[0]
-    
-    model.save('models/model.h5')
-    model.save('models/model_%s_%02d.h5' % (current_time(), int(accuracy * 100)))
+
+    # Human model
+    if os.path.exists(adversarial_model_file):
+        print('Adversarial model already exists. Loading.')
+        adversarial_model = load_model(adversarial_model_file, {'fmeasure': fmeasure, 'recall': recall, 'precision': precision})
+    elif os.path.exists(model_file):
+        print('Model already exists. Loading it as adversarial model.')
+        adversarial_model = load_model(model_file, {'fmeasure': fmeasure, 'recall': recall, 'precision': precision})
+    else:
+        print('Creating new adversarial model.')
+        adversarial_model = conv_model()
+
+#    model.summary()
+    for _model, _labels in zip([model, adversarial_model],
+                 [labels, adversarial_labels]):
+
+        history = _model.fit(frames, _labels,
+                  epochs=n_epochs,
+                  batch_size=batch_size_train,
+                  shuffle=True,
+                  verbose=1)
+
+        logits = _model.predict(frames, batch_size=batch_size_test)
+        y = np.argmax(_labels, axis=1)
+        p = np.argmax(logits,  axis=1)
+        print(confusion_matrix(y, p))
+        print(classification_report(y, p))
+
+    model.save(model_file)
+    adversarial_model.save(adversarial_model_file)
