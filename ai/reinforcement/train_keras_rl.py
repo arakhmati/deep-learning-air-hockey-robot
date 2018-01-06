@@ -10,7 +10,7 @@ import gym_air_hockey
 
 import sys
 sys.path.append('../supervised/keras')
-from model import fmeasure, recall, precision
+from metrics import fmeasure, recall, precision
 
 if __name__ == "__main__":
 
