@@ -14,7 +14,7 @@ from caffe2.python import workspace
 from caffe2.python.predictor import mobile_exporter
 
 import keras_to_caffe2
-from model import fmeasure, recall, precision
+from metrics import fmeasure, recall, precision
 
 
 if __name__ == '__main__':

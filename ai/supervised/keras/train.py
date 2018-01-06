@@ -29,7 +29,7 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     parser.add_argument('-f', '--data_file', help='Name of the file with training data', required=True)
-    parser.add_argument('-e', '--n_epochs', help='Number of epochs', default=20)
+    parser.add_argument('-e', '--n_epochs', help='Number of epochs', default=100)
     args = parser.parse_args()
     data_file = args.data_file
     n_epochs = args.n_epochs
@@ -60,7 +60,6 @@ if __name__ == "__main__":
         print('Creating new adversarial model.')
         adversarial_model = conv_model()
 
-#    model.summary()
     for _model, _labels in zip([model, adversarial_model],
                  [labels, adversarial_labels]):
 
