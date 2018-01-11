@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import os
 os.environ['CUDA_DEVICE_ORDER'] = 'PCI_BUS_ID'
 os.environ['CUDA_VISIBLE_DEVICES'] = ''
@@ -65,3 +67,6 @@ if __name__ == '__main__':
         f.write(init_net.SerializeToString())
     with open('predict_net.pb', 'wb') as f:
         f.write(predict_net.SerializeToString())
+
+    print('Saved keras model as init_net.pb and predict_net.pb')
+    

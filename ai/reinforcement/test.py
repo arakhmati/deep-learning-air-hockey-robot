@@ -16,7 +16,6 @@ model_file = models_dir + model_name + '.h5'
 
 if __name__ == "__main__":
 
-    dt = 2
     n_lookback = 3
 
     air_hockey = AirHockey()
@@ -28,7 +27,7 @@ if __name__ == "__main__":
         print(action)
         action = processor.process_action(action)
 
-        game_info  = air_hockey.step(action=action, dt=dt)
+        game_info  = air_hockey.step(action=action)
         
         if game_info.scored:
             game_info = air_hockey.reset()
