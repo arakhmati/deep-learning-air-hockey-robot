@@ -9,64 +9,47 @@ def conv_model(l1=0.00000, l2=0.0001):
     model = Sequential([
                 Conv2D(input_shape=(9, 128, 128),
                        name='conv1',
-                       filters=16,
+                       filters=32,
                        kernel_size=8,
                        strides=4,
                        activation='relu',
                        data_format='channels_first',
                        kernel_regularizer=regularizers.l2(l2)),
-                Dropout(name='conv1_dropout',
-                        rate=0.2),
                 BatchNormalization(name='batchnorm1', axis=1),
 
                 Conv2D(name='conv2',
-                       filters=32,
+                       filters=48,
                        kernel_size=4,
                        strides=2,
                        activation='relu',
                        data_format='channels_first',
                        kernel_regularizer=regularizers.l2(l2)),
-                Dropout(name='conv2_dropout',
-                        rate=0.2),
                 BatchNormalization(name='batchnorm2', axis=1),
 
                 Conv2D(name='conv3',
-                       filters=48,
-                       kernel_size=4,
-                       strides=1,
-                       activation='relu',
-                       data_format='channels_first',
-                       kernel_regularizer=regularizers.l2(l2)),
-                Dropout(name='conv3_dropout',
-                        rate=0.2),
-                BatchNormalization(name='batchnorm3', axis=1),
-
-                Conv2D(name='conv4',
                        filters=64,
                        kernel_size=4,
                        strides=1,
                        activation='relu',
                        data_format='channels_first',
                        kernel_regularizer=regularizers.l2(l2)),
-                Dropout(name='conv4_dropout',
-                        rate=0.2),
+                BatchNormalization(name='batchnorm3', axis=1),
+
+                Conv2D(name='conv4',
+                       filters=128,
+                       kernel_size=4,
+                       strides=1,
+                       activation='relu',
+                       data_format='channels_first',
+                       kernel_regularizer=regularizers.l2(l2)),
                 BatchNormalization(name='batchnorm4', axis=1),
 
                 Flatten(name='flatten'),
 
                 Dense(name='dense1',
-                      units=1024,
-                      activation='relu',
-                      kernel_regularizer=regularizers.l2(l2)),
-                Dropout(name='dense1_dropout',
-                        rate=0.3),
-
-                Dense(name='dense2',
                       units=512,
                       activation='relu',
                       kernel_regularizer=regularizers.l2(l2)),
-                Dropout(name='dense2_dropout',
-                        rate=0.3),
 
                 Dense(name='out',
                       units=10,
@@ -99,4 +82,5 @@ def convlstm_model(l1=0.00000, l2=0.00000):
     return model
 
 if __name__ == "__main__":
-    conv_model().summary()
+    model = conv_model()
+    model.summary()

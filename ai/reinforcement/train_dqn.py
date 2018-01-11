@@ -14,28 +14,26 @@ from metrics import fmeasure, recall, precision
 
 import gym
 import gym_air_hockey
-
-
-# Set learning phase to make sure all placeholders have values
-K.set_learning_phase(1)
+from plot_utils import plot
 
 if __name__ == "__main__":
 
+    K.set_learning_phase(1)
+
     n_steps = 1000000
-    training_start = 10
-    training_interval = 20
-    default_reset = 500
-    copy_steps = 200
-    discount_rate = 0.97
+    training_start = 100
+    training_interval = 100
+    save_steps = 10000
+    copy_steps = 1000
+    discount_rate = 0.95
     batch_size = 128
     iteration = 0
     done = True
-
-    eps_min = 0.1
-    eps_max = 1.0
-    eps_decay_steps = n_steps * 0.2
-
-    replay_memory_size = 1000
+    default_reset = 1000
+    replay_memory_size = 2000
+    eps_min = 0.0
+    eps_max = 0.0
+    eps_decay_steps = n_steps * 0.6
 
     env = gym.make('AirHockey-v0')
     processor = gym_air_hockey.DataProcessor()
@@ -44,6 +42,9 @@ if __name__ == "__main__":
 
     critic = clone_model(actor)
     critic.set_weights(actor.get_weights())
+
+    for actor_weight, critic_weight in zip(actor.get_weights(), critic.get_weights()):
+        assert np.allclose(actor_weight, critic_weight)
 
     def get_vars(model):
         return {var.name: var for var in model.trainable_weights}
@@ -64,23 +65,52 @@ if __name__ == "__main__":
     replay_memory = deque([], maxlen=replay_memory_size)
 
     def sample_memories(batch_size):
-        # memorable_experiences = [row for row in replay_memory if row[2] != 0.0]
-        # if len(memorable_experiences) == 0:
-        memorable_experiences = replay_memory
-        indices = np.random.permutation(len(memorable_experiences))[:batch_size]
+
+        def get_experiences(filter_func):
+            from random import shuffle
+            experiences = [row for row in replay_memory if filter_func(row['reward'])]
+            if len(experiences) == 0:
+                print('Get experiences from replay_memory instead')
+                experiences = [row for row in replay_memory]
+            shuffle(experiences)
+            experiences = experiences[:batch_size]
+
+            return experiences
+
+        rewarded_experiences = get_experiences(lambda x: x != 0.0)
+        typical_experiences  = get_experiences(lambda x: x == 0.0)
+#
+        mixed_experiences = []
+        for a, b in zip(rewarded_experiences, typical_experiences):
+            mixed_experiences.append(a)
+            mixed_experiences.append(b)
+#
+##            print('Rewarded: current')
+##            plot(a['state'])
+##            print('Rewarded: next')
+##            plot(a['next_state'])
+##
+##            print('Typical: current')
+##            plot(b['state'])
+##            print('Typical: next')
+##            plot(b['next_state'])
+##        print('Press any button')
+##        input()
+
+        indices = np.random.permutation(len(mixed_experiences))[:batch_size]
         cols = [[], [], [], [], []]
         for idx in indices:
-            memory = memorable_experiences[idx]
-            for col, value in zip(cols, memory):
-                col.append(value)
+            memory = mixed_experiences[idx]
+            for col, key in zip(cols, memory):
+                col.append(memory[key])
         cols = [np.array(col) for col in cols]
         return cols[0], cols[1], cols[2].reshape(-1, 1), cols[3], cols[4].reshape(-1, 1)
 
 
     def epsilon_greedy(q_values, step):
-        epsilon = max(eps_min, eps_max - (eps_max - eps_min) * iteration / eps_decay_steps)
-        if iteration % 100 == 0:
-            print('Epsilon %f' % epsilon)
+        epsilon = max(eps_min, eps_max - (eps_max - eps_min) * step / eps_decay_steps)
+#        if step % 100 == 0:
+#            print('Epsilon %f' % epsilon)
         if np.random.randn() < epsilon:
             return np.random.randint(10)
         return np.argmax(q_values)
@@ -100,24 +130,34 @@ if __name__ == "__main__":
             observation = env.reset()
             _ = processor.process_observation(observation)
             _ = processor.process_observation(observation)
-            state = processor.process_observation(observation)
+            state = np.copy(processor.process_observation(observation))
 
         q_values = actor_q_values.eval(session=sess, feed_dict={actor.input: [state]})
         action = epsilon_greedy(q_values, step)
 
-        observation, reward, done, info = env.step(processor.process_action(action), dt=np.random.randint(2, 4))
+        observation, reward, done, info = env.step(processor.process_action(action))
         if abs(reward) > 0.0:
             print('Reward %f' % reward)
         next_state = processor.process_observation(observation)
 
-        replay_memory.append((state, action, reward, next_state, 1.0 - done))
-        state = next_state
+        replay_memory.append({'state': np.copy(state),
+                              'action': action,
+                              'reward': reward,
+                              'next_state': np.copy(next_state),
+                              'continue': 1.0 - done})
+        state = np.copy(next_state)
 
         if iteration < training_start or iteration % training_interval != 0:
             continue
 
-        print('Updated %d' % iteration)
+        print('Updated %d %d' % (iteration, step))
         X_state_val, X_action_val, rewards, X_next_state_val, continues = sample_memories(batch_size)
+
+#        for s_t, a_t, r_t, s_t_1, c in zip(X_state_val, X_action_val, rewards, X_next_state_val, continues):
+#            print(a_t, r_t, c)
+#            plot(s_t)
+#            plot(s_t_1)
+
         next_q_values = critic_q_values.eval(session=sess, feed_dict={critic.input: X_next_state_val})
         max_next_q_values = np.max(next_q_values, axis=1).reshape(-1, 1)
         y_val = rewards + continues * discount_rate * max_next_q_values
@@ -125,6 +165,9 @@ if __name__ == "__main__":
 
         if step % copy_steps == 0:
             critic.set_weights(actor.get_weights())
+
+        if step % save_steps == 0:
+            actor.save('rl_model.h5')
 
 
     actor.save('rl_model.h5')
