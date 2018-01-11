@@ -15,7 +15,6 @@ adversarial_model_file = models_dir + adversarial_model_name + '.h5'
 
 if __name__ == "__main__":
 
-    dt = 2
     n_lookback = 3
 
     air_hockey = AirHockey()
@@ -28,7 +27,7 @@ if __name__ == "__main__":
         action = processor.process_action(action)
         adversarial_action = processor.process_action(adversarial_action)
 
-        game_info  = air_hockey.step(action=action, adversarial_action=adversarial_action, dt=dt)
+        game_info  = air_hockey.step(action=action, adversarial_action=adversarial_action)
 
         frame = processor.process_observation(game_info.frame)
         frame = frame.reshape((1,9,128,128))
