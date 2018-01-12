@@ -36,8 +36,9 @@ if __name__ == "__main__":
 
     current_frame = np.zeros((lookback * 3, processor.dim, processor.dim), dtype=np.float32)
 
-    def step():
-        game_info  = air_hockey.step()
+    def step(skip=True):
+        for _ in range(np.random.randint(1, 5) if skip else 1):
+            game_info  = air_hockey.step()
         frame = processor.process_observation(game_info.frame)
         action = processor.action_to_label(game_info.action)
         adversarial_action = processor.action_to_label(game_info.adversarial_action)
@@ -49,7 +50,7 @@ if __name__ == "__main__":
     def reset():
         # Fill in current_frame
         for _ in range(lookback):
-            game_info = step()
+            game_info = step(skip=False)
         return game_info
 
     game_info = reset()

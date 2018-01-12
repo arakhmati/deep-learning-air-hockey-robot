@@ -5,8 +5,10 @@ import numpy as np
 import tensorflow as tf
 
 from keras import backend as K
-from keras.models import load_model, clone_model
+from keras.layers import Dense
+from keras.models import load_model, clone_model, Model
 from keras.utils.np_utils import to_categorical
+from keras import activations
 
 from collections import deque
 
@@ -14,7 +16,9 @@ from metrics import fmeasure, recall, precision
 
 import gym
 import gym_air_hockey
-from plot_utils import plot
+from plot_utils import plot_state
+
+direction = ['NW', 'W', 'SW', 'N', 'Stand', 'S', 'NE', 'E', 'SE', 'Undefined']
 
 if __name__ == "__main__":
 
@@ -22,9 +26,9 @@ if __name__ == "__main__":
 
     n_steps = 1000000
     training_start = 100
-    training_interval = 100
+    training_interval = 200
     save_steps = 10000
-    copy_steps = 1000
+    copy_steps = 10000
     discount_rate = 0.95
     batch_size = 128
     iteration = 0
@@ -40,8 +44,20 @@ if __name__ == "__main__":
 
     actor = load_model('../supervised/keras/models/model.h5', {'fmeasure': fmeasure, 'recall': recall, 'precision': precision})
 
+    # Replace softmax layer with linear activation
+    # By giorgiop on https://github.com/keras-team/keras/issues/3465 commented on 10 Oct 2016
+    actor.layers.pop()
+    actor.layers[-1].outbound_nodes = []
+    actor.outputs = [actor.layers[-1].output]
+    output = actor.get_layer('dense1').output
+    output = Dense(name='output', output_dim=10, activation='linear')(output) # your newlayer Dense(...)
+    actor = Model(actor.input, output)
+
     critic = clone_model(actor)
     critic.set_weights(actor.get_weights())
+    
+    actor.summary()
+    critic.summary()
 
     for actor_weight, critic_weight in zip(actor.get_weights(), critic.get_weights()):
         assert np.allclose(actor_weight, critic_weight)
@@ -58,49 +74,49 @@ if __name__ == "__main__":
 
     y = tf.placeholder(tf.float32, shape=[None, 1])
     cost = tf.reduce_mean(tf.square(y - q_value))
-    global_step = tf.Variable(0, trainable=False, name='global_step')
+#    global_step = tf.Variable(0, trainable=False, name='global_step')
     optimizer = tf.train.AdamOptimizer()
-    training_op = optimizer.minimize(cost, global_step=global_step)
+    training_op = optimizer.minimize(cost)#, global_step=global_step)
 
     replay_memory = deque([], maxlen=replay_memory_size)
 
     def sample_memories(batch_size):
 
-        def get_experiences(filter_func):
-            from random import shuffle
-            experiences = [row for row in replay_memory if filter_func(row['reward'])]
-            if len(experiences) == 0:
-                print('Get experiences from replay_memory instead')
-                experiences = [row for row in replay_memory]
-            shuffle(experiences)
-            experiences = experiences[:batch_size]
-
-            return experiences
-
-        rewarded_experiences = get_experiences(lambda x: x != 0.0)
-        typical_experiences  = get_experiences(lambda x: x == 0.0)
+#        def get_experiences(filter_func):
+#            from random import shuffle
+#            experiences = [row for row in replay_memory if filter_func(row['reward'])]
+#            if len(experiences) == 0:
+#                print('Get experiences from replay_memory instead')
+#                experiences = [row for row in replay_memory]
+#            shuffle(experiences)
+#            experiences = experiences[:batch_size]
 #
-        mixed_experiences = []
-        for a, b in zip(rewarded_experiences, typical_experiences):
-            mixed_experiences.append(a)
-            mixed_experiences.append(b)
+#            return experiences
 #
-##            print('Rewarded: current')
-##            plot(a['state'])
-##            print('Rewarded: next')
-##            plot(a['next_state'])
+#        rewarded_experiences = get_experiences(lambda x: x != 0.0)
+#        typical_experiences  = get_experiences(lambda x: x == 0.0)
 ##
-##            print('Typical: current')
-##            plot(b['state'])
-##            print('Typical: next')
-##            plot(b['next_state'])
-##        print('Press any button')
-##        input()
+#        mixed_experiences = []
+#        for a, b in zip(rewarded_experiences, typical_experiences):
+#            mixed_experiences.append(a)
+#            mixed_experiences.append(b)
+##
+###            print('Rewarded: current')
+###            plot(a['state'])
+###            print('Rewarded: next')
+###            plot(a['next_state'])
+###
+###            print('Typical: current')
+###            plot(b['state'])
+###            print('Typical: next')
+###            plot(b['next_state'])
+###        print('Press any button')
+###        input()
 
-        indices = np.random.permutation(len(mixed_experiences))[:batch_size]
+        indices = np.random.permutation(len(replay_memory))[:batch_size]
         cols = [[], [], [], [], []]
         for idx in indices:
-            memory = mixed_experiences[idx]
+            memory = replay_memory[idx]
             for col, key in zip(cols, memory):
                 col.append(memory[key])
         cols = [np.array(col) for col in cols]
@@ -119,10 +135,10 @@ if __name__ == "__main__":
     sess = K.get_session()
     while True:
         reset -= 1
-        step = global_step.eval(session=sess)
+#        step = global_step.eval(session=sess)
         iteration += 1
 
-        if step > n_steps:
+        if iteration > n_steps:
             break
 
         if done or not reset:
@@ -133,11 +149,12 @@ if __name__ == "__main__":
             state = np.copy(processor.process_observation(observation))
 
         q_values = actor_q_values.eval(session=sess, feed_dict={actor.input: [state]})
-        action = epsilon_greedy(q_values, step)
+        action = epsilon_greedy(q_values, iteration)
 
-        observation, reward, done, info = env.step(processor.process_action(action))
-        if abs(reward) > 0.0:
-            print('Reward %f' % reward)
+        for _ in range(np.random.randint(1, 5)):
+            observation, reward, done, info = env.step(processor.process_action(action))
+#        if abs(reward) > 0.1:
+#            print('Reward %f' % reward)
         next_state = processor.process_observation(observation)
 
         replay_memory.append({'state': np.copy(state),
@@ -150,23 +167,24 @@ if __name__ == "__main__":
         if iteration < training_start or iteration % training_interval != 0:
             continue
 
-        print('Updated %d %d' % (iteration, step))
+        print('Updated %d' % (iteration))
         X_state_val, X_action_val, rewards, X_next_state_val, continues = sample_memories(batch_size)
 
 #        for s_t, a_t, r_t, s_t_1, c in zip(X_state_val, X_action_val, rewards, X_next_state_val, continues):
-#            print(a_t, r_t, c)
-#            plot(s_t)
-#            plot(s_t_1)
+#            print(direction[a_t], r_t, c)
+#            plot_state(s_t)
+#            plot_state(s_t_1)
 
         next_q_values = critic_q_values.eval(session=sess, feed_dict={critic.input: X_next_state_val})
         max_next_q_values = np.max(next_q_values, axis=1).reshape(-1, 1)
         y_val = rewards + continues * discount_rate * max_next_q_values
         training_op.run(session=sess, feed_dict={actor.input: X_state_val, X_action: X_action_val, y: y_val})
 
-        if step % copy_steps == 0:
+        if iteration % copy_steps == 0:
+            print('Copied weights from actor to critic')
             critic.set_weights(actor.get_weights())
 
-        if step % save_steps == 0:
+        if iteration % save_steps == 0:
             actor.save('rl_model.h5')
 
 
