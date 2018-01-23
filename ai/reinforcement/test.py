@@ -22,9 +22,11 @@ if __name__ == "__main__":
     processor = DataProcessor()
 
     model = load_model(model_file, {'fmeasure': fmeasure, 'recall': recall, 'precision': precision})
+    model.summary()
+    print(model.layers[-1].activation)
 
     def step(action=4):
-        print(action)
+#        print(action)
         action = processor.process_action(action)
 
         game_info  = air_hockey.step(action=action)
