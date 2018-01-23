@@ -6,8 +6,8 @@ os.environ['CUDA_VISIBLE_DEVICES'] = ''
 
 import sys
 dir_path = os.path.dirname(os.path.realpath(__file__))
-sys.path.append(dir_path + '/../utils')
-sys.path.append(dir_path + '/../keras')
+sys.path.append(dir_path + '/supervised/utils')
+sys.path.append(dir_path + '/supervised/keras')
 
 import argparse
 import numpy as np
@@ -21,13 +21,14 @@ from metrics import fmeasure, recall, precision
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('-f', '--data_file', default=None, help='Name of the file to with test data')
+    parser.add_argument('-f', '--data_file', default=None, help='file with test data')
+    parser.add_argument('-m', '--model_file', default=None, help='file containing keras model')
     args = parser.parse_args()
     data_file = args.data_file
+    model_file = args.model_file
 
     # Load keras model
-    keras_model = load_model(dir_path + '/../keras/models/model.h5', 
-                             {'fmeasure': fmeasure, 'recall': recall, 'precision': precision})
+    keras_model = load_model(model_file, {'fmeasure': fmeasure, 'recall': recall, 'precision': precision})
     
     # Copy from keras to caffe2
     caffe2_model = keras_to_caffe2.keras_to_caffe2(keras_model)

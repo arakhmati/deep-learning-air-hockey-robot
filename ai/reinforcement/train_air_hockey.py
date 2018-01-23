@@ -19,16 +19,17 @@ from plot_utils import plot_states
 if __name__ == "__main__":
 
     n_episodes = 20000
+    episode_length = 200
     training_start = 100
-    training_interval = 100
-    copy_interval = 3000
+    training_interval = 25
+    copy_interval = 2500
     
-    batch_size = 128
+    batch_size = 64
     discount_rate = 0.99
-    buffer_size = 5000
+    buffer_size = 10000
     eps_min = 0.0
     eps_max = 0.9
-    eps_decay_steps = 100000
+    eps_decay_steps = 40000
     
     reward_buffer = deque([], maxlen=100)
     
@@ -59,10 +60,27 @@ if __name__ == "__main__":
             assert equals
             
         return model, target_model
+    
+    def rl_models():
+        model = load_model('rl_model.h5', {'fmeasure': fmeasure, 'recall': recall, 'precision': precision})
+    
+        target_model = clone_model(model)
+        target_model.compile(loss='mean_squared_error',  optimizer=SGD(lr=0.0075, momentum=0.5, decay=1e-6, clipnorm=2),
+                      metrics=['accuracy'])
+        target_model.set_weights(model.get_weights())
+        
+        model.summary()
+        target_model.summary()
+    
+        for model_weight, target_model_weight in zip(model.get_weights(), target_model.get_weights()):
+            equals = np.allclose(model_weight, target_model_weight)
+            assert equals
+            
+        return model, target_model
             
 
     env = gym.make('AirHockey-v0')
-    agent = DDQNAgent(models=models(),
+    agent = DDQNAgent(models=rl_models(),
                       nb_actions=env.nb_actions,
                       buffer_size=buffer_size,
                       batch_size=batch_size,
@@ -73,7 +91,11 @@ if __name__ == "__main__":
                       processor=gym_air_hockey.DataProcessor())
     
     
+    
+    programmed_action = True
+    action_distribution = np.zeros((env.nb_actions), dtype=np.uint32)
     def run_episode():
+        global programmed_action
         
         reward_sum = 0
         observation = env.reset()
@@ -82,7 +104,9 @@ if __name__ == "__main__":
         state = agent.process_observation(observation)
         done = False
         
-        while not done:
+        episode_step = 0
+        
+        while not done and episode_step < episode_length:
             
             try:
                 env.render()
@@ -90,19 +114,31 @@ if __name__ == "__main__":
                 pass
             
             action = agent.compute_action(state)
-            observation, reward, done, _ = env.step(agent.process_action(action))
+#            if programmed_action:
+#                action = None
+            
+            observation, reward, done, info = env.step(agent.process_action(action))
+            
+#            if programmed_action:
+#                action = info['action']
+                
+            action_distribution[action] += 1
             
             # Get next state and store data to experience buffer
             next_state = agent.process_observation(observation)
-#            plot_states(state, action, reward, next_state, done)
-            agent.store_memory((state, action, reward, next_state, done))
-            state = next_state
+            state = np.copy(next_state)
             
             reward_sum += reward
             
+#            if agent.iteration > 1000:
+#                programmed_action = False
+            
             # Train
-            if agent.iteration > training_start and (agent.iteration % training_interval == 0):
-                print('Iteration: {}'.format(agent.iteration))
+            if agent.iteration > training_start and agent.iteration % training_interval == 0:
+                if agent.iteration % 100 == 0:
+                    print('Iteration: {}'.format(agent.iteration))
+                    print('Action Distribution: ', end='')
+                    print(action_distribution / sum(action_distribution))
                 
                 agent.train_q()
             
@@ -111,8 +147,10 @@ if __name__ == "__main__":
                 plt.pause(0.00001)
                 
             # Copy to target
-            if agent.iteration > copy_interval and (agent.iteration % copy_interval == 0):
+            if agent.iteration > copy_interval and agent.iteration % copy_interval == 0:
                 agent.update_target_weights()
+                
+            episode_step += 1
 
         return reward_sum
     

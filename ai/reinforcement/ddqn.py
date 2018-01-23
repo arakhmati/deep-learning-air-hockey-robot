@@ -64,6 +64,11 @@ class DDQNAgent(object):
             self.policy = epsilon_greedy
 
     def sample_memories(self, batch_size):
+        
+#        for state, action, reward, next_state, done in self.experience_buffer:
+#            from plot_utils import plot_states
+#            plot_states(state, action, reward, next_state, done)
+        
         from random import sample
         min_len = min(batch_size, len(self.experience_buffer))
         random_memories = sample(self.experience_buffer, min_len)
@@ -79,7 +84,6 @@ class DDQNAgent(object):
     def store_memory(self, memory):
         state, action, reward, next_state, done = memory
         self.experience_buffer.append((np.copy(state), action, reward, np.copy(next_state), done))
-        self.iteration += 1
     
     def predict(self, X, use_target=False, expand_dims=False):
         if expand_dims:
@@ -89,6 +93,7 @@ class DDQNAgent(object):
         return self.model.predict(X)
     
     def compute_action(self, state):
+        self.iteration += 1
         q_values = self.predict(state, expand_dims=True)
         action = self.policy(q_values)
         return action
@@ -96,6 +101,7 @@ class DDQNAgent(object):
     def update_target_weights(self):
         self.target_model.set_weights(self.model.get_weights())
         self.use_target = True
+        self.model.save('rl_model.h5')
         print('Copied weights from target_model to model')
         
     def process_action(self, action):
@@ -111,11 +117,10 @@ class DDQNAgent(object):
             next_q_values = self.predict(next_states, use_target=self.use_target)
             next_actions = np.argmax(self.predict(next_states), axis=1)
             
-            for i in range(targets.shape[0]):
-                if done[i]:
-                    targets[i, actions[i]] = rewards[i]
-                else:
-                    targets[i, actions[i]] = rewards[i] + self.discount_rate * next_q_values[i, next_actions[i]]
+            row_indices = np.arange(targets.shape[0])
+            targets[row_indices, actions] = rewards + (1 - done) * self.discount_rate * next_q_values[row_indices, next_actions]
             
+            targets = np.clip(targets, -1, 1)
+
             loss = self.model.fit(states, targets, epochs=1, verbose=0, shuffle=True)
             self.loss_buffer.append(loss.history['loss'])
