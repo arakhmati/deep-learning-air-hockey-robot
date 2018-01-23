@@ -12,12 +12,13 @@ from metrics import fmeasure, recall, precision
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('-f', '--data_file', help='Name of the file with training data', required=True)
+    parser.add_argument('-f', '--data_file', default=None, help='file with test data')
+    parser.add_argument('-m', '--model_file', default=None, help='file containing keras model')
     args = parser.parse_args()
     data_file = args.data_file
+    model_file = args.model_file
 
-    keras_model = load_model('models/model.h5',
-         {'fmeasure': fmeasure, 'recall': recall, 'precision': precision})
+    keras_model = load_model(model_file, {'fmeasure': fmeasure, 'recall': recall, 'precision': precision})
 
     with h5py.File(data_file, 'r') as f:
         frames = f['frames'][:]
@@ -33,5 +34,5 @@ if __name__ == "__main__":
         print('Visualizing all activations')
         model.visualize(until=12, n_cols=5) # Stop on last BatchNorm
 
-#        print('Deconvolving first layer')
-#        model.deconvolve(index=0)
+        print('Deconvolving first layer')
+        model.deconvolve(index=0)
