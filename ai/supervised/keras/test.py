@@ -30,7 +30,7 @@ if __name__ == "__main__":
         game_info  = air_hockey.step(action=action, adversarial_action=adversarial_action)
 
         frame = processor.process_observation(game_info.frame)
-        frame = frame.reshape((1,9,128,128))
+        frame = frame.reshape((1,1,128,128))
         return frame
 
     def reset():

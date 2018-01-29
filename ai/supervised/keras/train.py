@@ -41,6 +41,9 @@ if __name__ == "__main__":
     labels = to_categorical(labels, num_classes=10)
     adversarial_labels = to_categorical(adversarial_labels, num_classes=10)
 
+    # Add Channel Dimension to make the frames compatible with Conv2D NCHW input
+    frames = np.expand_dims(frames, axis=1)
+
     # Robot model
     if os.path.exists(model_file):
         print('Model already exists. Loading.')

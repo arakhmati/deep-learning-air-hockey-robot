@@ -30,7 +30,7 @@ if __name__ == "__main__":
     air_hockey = AirHockey()
     processor = DataProcessor()
 
-    frames = np.zeros((n_frames, lookback * 3, processor.dim, processor.dim), dtype=np.float32)
+    frames = np.zeros((n_frames, processor.dim, processor.dim), dtype=np.float32)
     labels = np.zeros(n_frames, dtype=np.int8)
     adversarial_labels = np.zeros(n_frames, dtype=np.int8)
 
