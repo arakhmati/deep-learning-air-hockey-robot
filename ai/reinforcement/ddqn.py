@@ -24,7 +24,7 @@ class DDQNAgent(object):
     
     def __init__(self,
                  models,
-                 nb_actions,
+                 n_actions,
                  buffer_size=1000,
                  batch_size=128,
                  discount_rate=0.99,
@@ -37,7 +37,7 @@ class DDQNAgent(object):
         self.iteration = 0
         
         self.model, self.target_model = models
-        self.nb_actions = nb_actions
+        self.n_actions = n_actions
         self.use_target = False
         self.batch_size = batch_size
         self.discount_rate = discount_rate
@@ -58,7 +58,7 @@ class DDQNAgent(object):
                 if self.iteration % 100 == 0:
                     print('Epsilon %f' % epsilon)
                 if np.random.uniform(0, 1) < epsilon:
-                    return np.random.randint(self.nb_actions)
+                    return np.random.randint(self.n_actions)
                 return np.argmax(q_values)
             
             self.policy = epsilon_greedy
