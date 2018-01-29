@@ -1,12 +1,13 @@
 # 41X - Air Hockey Robot Capstone Project
-Undegraduate capstone project the goal of which is to build a real-time air hockey robot controlled by neural network.
+Undergraduate capstone project the goal of which is to build a real-time air hockey robot controlled by a neural network.
 
-### How it works
-Neural network is pretrained with labeled frames generated using [Air Hockey Game Simulator](https://github.com/arakhmat/air-hockey), and then trained via reinforcement learning techniques using [gym-air-hockey](https://github.com/arakhmat/gym-air-hockey) as the environment. Then, the model is converted from keras to caffe2 using [keras-to-caffe2 converter](https://github.com/arakhmat/keras-to-caffe2). 
-
-Once caffe2 model is obtained, it is copied over to the [Perception (Android Application)](https://github.com/arakhmat/perception). 
-
-During the game, Android application sends actions that it it inferred via NN to Arduino that in turn controls the robot.
+### Main Components
+1. [Air Hockey Game Simulator](https://github.com/arakhmat/air-hockey) is implemented using Pygame library and is used to generate images that are as close as possible to the frames that will be captured by an Android phone during an actual game. The simulator has real-life physics and serves two main purposes:
+  1. Produce frames labeled with the action of programmed AI in order to pretrain convolutional layers of the neural network.
+  2. Act as an environment that can be used by a Reinforcement Learning Agent.
+2. [gym-air-hockey](https://github.com/arakhmat/gym-air-hockey) is an OpenAI Gym Environment Wrapper around [Air Hockey Game Simulator](https://github.com/arakhmat/air-hockey). It is used to determine the rewards, as well as process actions and observations.
+3. [Perception](https://github.com/arakhmat/perception) is an Android Application that is used to control the robot during the game. It captures and processes the frames, infers the prediction of the CNN and sends it to Arduino via BluetoothLE.
+4. This repository contains scripts used to generate labeled frames, pretrain CNN using supervised learning, further train CNN using reinforcement learning, convert keras model to caffe2 using [keras-to-caffe2 converter](https://github.com/arakhmat/keras-to-caffe2), visualize CNN filters and layer activations using [unveiler](https://github.com/arakhmat/unveiler) and etc.
 ### Prerequisites
 [Python3](https://www.anaconda.com/download/)  
 [Android Studio](https://developer.android.com/studio/index.html)  
