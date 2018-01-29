@@ -28,8 +28,8 @@ if __name__ == "__main__":
     discount_rate = 0.99
     buffer_size = 10000
     eps_min = 0.0
-    eps_max = 0.9
-    eps_decay_steps = 40000
+    eps_max = 0.99
+    eps_decay_steps = 100000
     
     reward_buffer = deque([], maxlen=100)
     
@@ -80,8 +80,8 @@ if __name__ == "__main__":
             
 
     env = gym.make('AirHockey-v0')
-    agent = DDQNAgent(models=rl_models(),
-                      nb_actions=env.nb_actions,
+    agent = DDQNAgent(models=models(),
+                      n_actions=env.n_actions,
                       buffer_size=buffer_size,
                       batch_size=batch_size,
                       discount_rate=discount_rate,
@@ -93,7 +93,7 @@ if __name__ == "__main__":
     
     
     programmed_action = True
-    action_distribution = np.zeros((env.nb_actions), dtype=np.uint32)
+    action_distribution = np.zeros((env.n_actions), dtype=np.uint32)
     def run_episode():
         global programmed_action
         
@@ -126,6 +126,8 @@ if __name__ == "__main__":
             
             # Get next state and store data to experience buffer
             next_state = agent.process_observation(observation)
+            agent.store_memory((state, action, reward, next_state, done))
+
             state = np.copy(next_state)
             
             reward_sum += reward
