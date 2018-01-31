@@ -1,4 +1,11 @@
 import os
+import sys
+dir_path = os.path.dirname(os.path.realpath(__file__))
+sys.path.append(dir_path + '/../')
+
+import config
+
+import os
 import h5py
 import time
 import json
@@ -7,9 +14,11 @@ import argparse
 import datetime
 import numpy as np
 import progressbar
+from collections import deque
 
-from air_hockey import AirHockey
-from gym_air_hockey import DataProcessor
+import gym
+import gym_air_hockey
+
 from utils.data_utils import save_data
 
 current_dir = os.path.dirname(os.path.realpath(__file__))
@@ -17,57 +26,38 @@ data_dir = current_dir + '/data/'
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('-l', '--lookback', type=int, default=3,
-                        help='Number of frames to look in the past')
-    parser.add_argument('-n', '--n_frames', type=int, default=5000,
-                        help='Number of frames to be saved')
+    parser.add_argument('-n', '--n_states', type=int, default=2000, help='number of states to be saved')
+
     args = parser.parse_args()
+    n_states = args.n_states
+    mode     = config.mode
 
-    lookback = args.lookback
-    n_frames = args.n_frames
-    print('lookback %d, n_frames %d' % (lookback, n_frames))
+    env = gym.make('AirHockey-v0')
+    env.update(mode=mode)
 
-    air_hockey = AirHockey()
-    processor = DataProcessor()
+    states        = deque(maxlen=n_states)
+    robot_actions = deque(maxlen=n_states)
+    human_actions = deque(maxlen=n_states)
 
-    frames = np.zeros((n_frames, lookback * 3, processor.dim, processor.dim), dtype=np.float32)
-    labels = np.zeros(n_frames, dtype=np.int8)
-    adversarial_labels = np.zeros(n_frames, dtype=np.int8)
-
-    current_frame = np.zeros((lookback * 3, processor.dim, processor.dim), dtype=np.float32)
-
-    def step(skip=True):
-        for _ in range(np.random.randint(1, 5) if skip else 1):
-            game_info  = air_hockey.step()
-        frame = processor.process_observation(game_info.frame)
-        action = processor.action_to_label(game_info.action)
-        adversarial_action = processor.action_to_label(game_info.adversarial_action)
-        return {'frame': frame,
-                'action': action,
-                'adversarial_action': adversarial_action,
-                'scored': game_info.scored}
-
-    def reset():
-        # Fill in current_frame
-        for _ in range(lookback):
-            game_info = step(skip=False)
-        return game_info
-
-    game_info = reset()
-    bar = progressbar.ProgressBar(max_value=n_frames)
-    for i in range(n_frames):
+    reset = True
+    bar = progressbar.ProgressBar(max_value=n_states)
+    for i in range(n_states):
         if any([event.type == pygame.QUIT for event in pygame.event.get()]): break
 
-        frames[i] = game_info['frame']
-        labels[i] = game_info['action']
-        adversarial_labels[i] = game_info['adversarial_action']
+        if reset:
+            reset = False
+            env.reset()
 
-        game_info = step()
+        state, _, terminal, game_info = env.step()
+
+        states.append(state)
+        robot_actions.append(game_info['robot_action'])
+        human_actions.append(game_info['human_action'])
+
+        if terminal:
+            reset = True
+        
         bar.update(i)
-
-        if game_info['scored']:
-            air_hockey.reset()
-            game_info = reset()
 
     def current_time():
         return datetime.datetime.fromtimestamp(int(time.time())).strftime('%Y-%m-%d-%H-%M-%S')
@@ -75,9 +65,11 @@ if __name__ == "__main__":
     if not os.path.isdir(data_dir):
         os.mkdir(data_dir)
 
-    print(labels, adversarial_labels)
+    states = np.array(states, dtype=np.float32)
+    robot_actions = np.array(robot_actions, dtype=np.int8)
+    human_actions = np.array(human_actions, dtype=np.int8)
 
-    data_file = data_dir + ('%s_%d_%d.h5' % (current_time(), lookback, n_frames))
-    save_data(data_file, frames, labels, adversarial_labels)
-    print('Saved generated frames to %s' % data_file)
+    data_file = data_dir + ('%s_%s_%d.h5' % (current_time(), mode, n_states))
+    save_data(data_file, states, robot_actions, human_actions)
+    print('Saved generated states to %s' % data_file)
 

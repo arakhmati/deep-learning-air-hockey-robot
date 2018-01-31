@@ -1,56 +1,54 @@
+import os
 import sys
+dir_path = os.path.dirname(os.path.realpath(__file__))
+sys.path.append(dir_path + '/../')
 sys.path.append('../supervised/keras')
+
+import config
 
 import pygame
 import numpy as np
 
 from keras.models import load_model
 from metrics import fmeasure, recall, precision
-from air_hockey import AirHockey
-from gym_air_hockey import DataProcessor
 
-models_dir = './'
-model_name = 'rl_model'
+import gym
+import gym_air_hockey
 
-model_file = models_dir + model_name + '.h5'
+models_dir = dir_path + '/models/' + config.mode + '/'
+robot_model_name = 'robot_model'
+human_model_name = 'human_model'
+
+robot_model_file = models_dir + robot_model_name + '.h5'
+human_model_file = models_dir + human_model_name + '.h5'
 
 if __name__ == "__main__":
 
-    n_lookback = 3
+    mode = config.mode
 
-    air_hockey = AirHockey()
-    processor = DataProcessor()
+    env = gym.make('AirHockey-v0')
+    env.update(mode=mode)
 
-    model = load_model(model_file, {'fmeasure': fmeasure, 'recall': recall, 'precision': precision})
-    model.summary()
-    print(model.layers[-1].activation)
+    robot_model = load_model(robot_model_file, {'fmeasure': fmeasure, 'recall': recall, 'precision': precision})
 
-    def step(action=4):
-#        print(action)
-        action = processor.process_action(action)
-
-        game_info  = air_hockey.step(action=action)
-        
-        if game_info.scored:
-            game_info = air_hockey.reset()
-            reset()
-
-        frame = processor.process_observation(game_info.frame)
-        frame = frame.reshape((1,9,128,128))
-        return frame
-
-    def reset():
-        # Fill in current_frame
-        for _ in range(n_lookback):
-            frame = step()
-        return frame
-
-    frame = reset()
+    if config.train_human_model:
+        human_model = load_model(human_model_file, {'fmeasure': fmeasure, 'recall': recall, 'precision': precision})
+    
+    state = env.reset()
     while True:
         if any([event.type == pygame.QUIT for event in pygame.event.get()]): break
-        action = model.predict(frame)[0]
 
-        action = np.asscalar(np.argmax(action))
+        state = np.expand_dims(state, axis=0)
 
-        frame = step(action=action)
+        robot_action = robot_model.predict(state)[0]
+        robot_action = np.asscalar(np.argmax(robot_action))
+
+        if config.train_human_model:
+            human_action = human_model.predict(state)[0]
+            human_action = np.asscalar(np.argmax(human_action))
+        else:
+            human_action = None
+
+        state, _, terminal, game_info = env.step(robot_action=robot_action, human_action=human_action)
+
     pygame.quit()

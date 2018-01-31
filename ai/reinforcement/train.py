@@ -16,6 +16,13 @@ from ddqn import DDQNAgent
 from metrics import fmeasure, recall, precision
 from plot_utils import plot_states
 
+models_dir = dir_path + '/models/' + config.mode + '/'
+robot_model_name = 'robot_model'
+human_model_name = 'human_model'
+
+robot_model_file = models_dir + robot_model_name + '.h5'
+human_model_file = models_dir + human_model_name + '.h5'
+
 if __name__ == "__main__":
 
     n_episodes = 20000
@@ -34,7 +41,7 @@ if __name__ == "__main__":
     reward_buffer = deque([], maxlen=100)
     
     def models():
-        model = load_model('../supervised/keras/models/model.h5', {'fmeasure': fmeasure, 'recall': recall, 'precision': precision})
+        model = load_model('../supervised/keras/models/rgb/robot_model.h5', {'fmeasure': fmeasure, 'recall': recall, 'precision': precision})
 
         # Replace softmax layer with linear activation
         # By giorgiop on https://github.com/keras-team/keras/issues/3465 commented on 10 Oct 2016
@@ -98,10 +105,7 @@ if __name__ == "__main__":
         global programmed_action
         
         reward_sum = 0
-        observation = env.reset()
-        _ = agent.process_observation(observation)
-        _ = agent.process_observation(observation)
-        state = agent.process_observation(observation)
+        state = env.reset()
         done = False
         
         episode_step = 0
@@ -114,26 +118,15 @@ if __name__ == "__main__":
                 pass
             
             action = agent.compute_action(state)
-#            if programmed_action:
-#                action = None
             
-            observation, reward, done, info = env.step(agent.process_action(action))
+            next_state, reward, done, info = env.step(action)
             
-#            if programmed_action:
-#                action = info['action']
-                
-            action_distribution[action] += 1
-            
-            # Get next state and store data to experience buffer
-            next_state = agent.process_observation(observation)
+            # Store data to experience buffer
             agent.store_memory((state, action, reward, next_state, done))
-
             state = np.copy(next_state)
             
+            action_distribution[action] += 1
             reward_sum += reward
-            
-#            if agent.iteration > 1000:
-#                programmed_action = False
             
             # Train
             if agent.iteration > training_start and agent.iteration % training_interval == 0:

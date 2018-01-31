@@ -18,7 +18,6 @@ from caffe2.python.predictor import mobile_exporter
 import keras_to_caffe2
 from metrics import fmeasure, recall, precision
 
-
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-f', '--data_file', default=None, help='file with test data')
@@ -45,7 +44,7 @@ if __name__ == '__main__':
             keras_pred = keras_model.predict(frame)[0]
             workspace.FeedBlob('in', frame)
             workspace.RunNet(caffe2_model.net)
-            caffe2_pred = workspace.FetchBlob('softmax')[0]
+            caffe2_pred = workspace.FetchBlob('out')[0]
             
             def print_array(array):
                 for x in array:
