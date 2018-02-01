@@ -263,6 +263,8 @@ class PGAgent(Agent):
         loss = self.model.fit(states, targets, epochs=1, verbose=0, shuffle=True)
         self.loss_buffer.append(loss.history['loss'])
         
+        self.model.save(self.model_file)
+        
         self._reset_experience_buffer()
 
         if plot:
