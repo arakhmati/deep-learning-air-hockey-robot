@@ -25,6 +25,9 @@ human_model_file = models_dir + human_model_name + '.h5'
 
 if __name__ == "__main__":
 
+    if not os.path.exists(models_dir):
+        os.makedirs(models_dir)
+
     n_episodes = 200000
     episode_length = 200
     training_start = 100
