@@ -1,5 +1,5 @@
-# 41X - Air Hockey Robot Capstone Project
-Undergraduate capstone project the goal of which is to build a real-time air hockey robot controlled by a neural network.
+# 41X - Deep Learning Air Hockey Robot
+Real-time air hockey robot controlled by a convolutional neural network.
 
 ### Main Components
 1. [Air Hockey Game Simulator](https://github.com/arakhmat/air-hockey) is implemented using Pygame library and is used to generate images that are as close as possible to the frames that will be captured by an Android phone during an actual game. The simulator has real-life physics and serves two main purposes:
