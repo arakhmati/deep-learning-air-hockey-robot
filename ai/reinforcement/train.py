@@ -2,10 +2,11 @@ import os
 import sys
 dir_path = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(dir_path + '/../')
-sys.path.append('../supervised/keras')
+sys.path.append(dir_path + '/../supervised/keras')
 
 import config
         
+import argparse
 import numpy as np
 import matplotlib.pyplot as plt
 from collections import deque
@@ -28,6 +29,14 @@ if __name__ == "__main__":
     if not os.path.exists(models_dir):
         os.makedirs(models_dir)
 
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-m', '--pretrained_model_file', type=str, required=True, help='file with the pretrained model')
+    parser.add_argument('-a', '--agent', type=str, default='ddqn', choices=['ddqn', 'pg'], help='reinforcement learning agent')
+    args = parser.parse_args()
+    pretrained_model_file = args.pretrained_model_file
+    print(pretrained_model_file)
+    agent_class = args.agent
+
     n_episodes = 200000
     episode_length = 200
     training_start = 100
@@ -36,7 +45,7 @@ if __name__ == "__main__":
     
     batch_size = 64
     discount_rate = 0.99
-    buffer_size = 10000
+    buffer_size = 10000 if config.mode == 'rgb' else 60000
     eps_min = 0.1
     eps_max = 0.99
     eps_decay_steps = 1000000   
@@ -44,19 +53,25 @@ if __name__ == "__main__":
     env = gym.make('AirHockey-v0')
     env.update(mode=config.mode)
 
-    agent = PGAgent(n_actions=env.n_actions,
-                      initial_model_file='../supervised/keras/models/rgb/robot_model.h5',
-                      buffer_size=buffer_size,
-                      batch_size=batch_size,
-                      discount_rate=discount_rate,
-                      eps_min=eps_min,
-                      eps_max=eps_max,
-                      eps_decay_steps=eps_decay_steps,
-                      model_file=robot_model_file)
+
+    agents = {
+                'ddqn': DDQNAgent,
+                'pg': PGAgent
+             }
+    Agent = agents[agent_class]
+
+    agent = Agent(n_actions=env.n_actions,
+                  pretrained_model_file=pretrained_model_file,
+                  buffer_size=buffer_size,
+                  batch_size=batch_size,
+                  discount_rate=discount_rate,
+                  eps_min=eps_min,
+                  eps_max=eps_max,
+                  eps_decay_steps=eps_decay_steps,
+                  model_file=robot_model_file)
 
     
     reward_buffer = deque([], maxlen=1000)  
-    action_distribution = np.zeros((env.n_actions), dtype=np.uint32)
 
     def run_episode():
         
@@ -75,21 +90,15 @@ if __name__ == "__main__":
             action = agent.act(state)
             
             next_state, reward, done, info = env.step(action)
+            reward_sum += reward
             
             # Store data to experience buffer
             agent.store_experience((state, action, reward, next_state, done))
             state = np.copy(next_state)
             
-            action_distribution[action] += 1
-            reward_sum += reward
-            
             # Train DDQNAgent
             if isinstance(agent, DDQNAgent):
                 if agent.iteration > training_start and (agent.iteration % training_interval == 0):
-                    if agent.iteration % 100 == 0:
-                        print('Iteration: {}'.format(agent.iteration))
-                        print('Action Distribution: ', end='')
-                        print(action_distribution / sum(action_distribution))
                     agent.train()
                 
                 # Copy to target

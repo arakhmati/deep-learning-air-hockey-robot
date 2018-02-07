@@ -2,7 +2,7 @@ import os
 import sys
 dir_path = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(dir_path + '/../')
-sys.path.append('../supervised/keras')
+sys.path.append(dir_path + '/../supervised/keras')
 
 import config
 
@@ -24,10 +24,8 @@ human_model_file = models_dir + human_model_name + '.h5'
 
 if __name__ == "__main__":
 
-    mode = config.mode
-
     env = gym.make('AirHockey-v0')
-    env.update(mode=mode)
+    env.update(mode=config.mode)
 
     robot_model = load_model(robot_model_file, {'fmeasure': fmeasure, 'recall': recall, 'precision': precision})
 

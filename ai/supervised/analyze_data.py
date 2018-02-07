@@ -7,7 +7,7 @@ direction = ['NW', 'W', 'SW', 'N', 'Stand', 'S', 'NE', 'E', 'SE', 'Undefined']
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('-f', '--data_file', help='data file to analyze')
+    parser.add_argument('-f', '--data_file', type=str, required=True, help='data file to analyze')
     args = parser.parse_args()
     data_file = args.data_file
     states, robot_actions, human_actions = load_data(data_file)
