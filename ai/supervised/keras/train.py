@@ -24,9 +24,9 @@ human_model_file = models_dir + human_model_name + '.h5'
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('-f', '--data_file', help='file with training data', required=True)
-    parser.add_argument('-e', '--n_epochs', help='number of epochs', default=100)
-    parser.add_argument('-b', '--batch_size', help='batch size', default=128)
+    parser.add_argument('-f', '--data_file',  type=str, required=True, help='file with training data')
+    parser.add_argument('-e', '--n_epochs',   type=int, default=100,   help='number of epochs')
+    parser.add_argument('-b', '--batch_size', type=int, default=128,   help='batch size')
     args = parser.parse_args()
     data_file   = args.data_file
     n_epochs    = args.n_epochs

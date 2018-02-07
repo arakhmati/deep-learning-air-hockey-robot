@@ -11,7 +11,7 @@ from collections import deque
 import matplotlib.pyplot as plt
 from keras.layers import Dense
 from keras.models import  clone_model, load_model, Model
-from keras.optimizers import SGD
+from keras.optimizers import SGD, Adam
 
 from metrics import fmeasure, recall, precision
 
@@ -35,6 +35,8 @@ class Agent(ABC):
         self.batch_size = batch_size
         self.buffer_size = buffer_size
         self.discount_rate = discount_rate
+
+        self.action_distribution = np.zeros((self.n_actions), dtype=np.uint32)
         
         self._reset_experience_buffer()
         self.loss_buffer = deque([], maxlen=100000)
@@ -85,10 +87,14 @@ class Agent(ABC):
         self.experience_buffer.append((np.copy(state), action, reward, np.copy(next_state), done))
         
     def act(self, state):
+        
         self.iteration += 1
         prediction = self._predict(state, expand_dims=True)
         action = self.policy(prediction)
+            
+        self.action_distribution[action] += 1
         self.prediction = prediction[0]
+
         return action
         
     def update_target_weights(self):
@@ -110,11 +116,17 @@ class Agent(ABC):
             equals = np.allclose(model_weight, target_model_weight)
             assert equals
 
+    def train(self):
+        if self.iteration % 1000 == 0:
+            print('Iteration: {}'.format(self.iteration))
+            print('Action Distribution: ', end='')
+            print(self.action_distribution / sum(self.action_distribution))
+
 class DDQNAgent(Agent):
     
     def __init__(self,
                  n_actions,
-                 initial_model_file=None,
+                 pretrained_model_file=None,
                  model=None,
                  buffer_size=1000,
                  batch_size=128,
@@ -138,8 +150,8 @@ class DDQNAgent(Agent):
             model_file=model_file
         )
 
-        if initial_model_file != None:
-            self.model = load_model(initial_model_file, {'fmeasure': fmeasure, 'recall': recall, 'precision': precision})
+        if pretrained_model_file != None:
+            self.model = load_model(pretrained_model_file, {'fmeasure': fmeasure, 'recall': recall, 'precision': precision})
         elif model != None:
             self.model = model
         else:
@@ -163,6 +175,7 @@ class DDQNAgent(Agent):
         self._set_target_model()
         
     def train(self, plot=True):
+        super().train()
         states, actions, rewards, next_states, done = self._sample_experiences(self.batch_size)
         
         targets = self._predict(states)
@@ -171,9 +184,6 @@ class DDQNAgent(Agent):
         
         row_indices = np.arange(targets.shape[0])
         targets[row_indices, actions] = rewards + (1 - done) * self.discount_rate * next_q_values[row_indices, next_actions]
-        
-        # # Prevent the logits from growing too big
-        # targets = np.clip(targets, -1, 1)
 
         loss = self.model.fit(states, targets, epochs=1, verbose=0, shuffle=True)
         self.loss_buffer.append(loss.history['loss'])
@@ -187,7 +197,7 @@ class PGAgent(Agent):
     
     def __init__(self,
                  n_actions,
-                 initial_model_file=None,
+                 pretrained_model_file=None,
                  model=None,
                  buffer_size=1000,
                  batch_size=128,
@@ -213,12 +223,13 @@ class PGAgent(Agent):
         )
         self.learning_rate = learning_rate
 
-        if initial_model_file != None:
-            self.model = load_model(initial_model_file, {'fmeasure': fmeasure, 'recall': recall, 'precision': precision})
+        if pretrained_model_file != None:
+            self.model = load_model(pretrained_model_file, {'fmeasure': fmeasure, 'recall': recall, 'precision': precision})
         elif model != None:
             self.model = model
         else:
             raise ValueError('A file containing model or a model object needs to specified')
+        self.model.summary()
 
     def _sample_experiences(self):
 
@@ -240,6 +251,8 @@ class PGAgent(Agent):
         self.experience_buffer.append((np.copy(state), reward, self.prediction, y - self.prediction))
         
     def train(self, plot=True):
+        super().train()
+
         def discount_rewards(rewards):
             rewards = np.array(rewards)
             # Discount episode rewards
@@ -247,8 +260,7 @@ class PGAgent(Agent):
                 rewards[i-1] += self.discount_rate * rewards[i]
             # standardize the rewards to be unit normal (helps control the gradient estimator variance)
             rewards -= np.mean(rewards)
-
-            # Fix division by zero bug
+            # Fix division by zero bug by using np.divide when scaling by std
             rewards_std = np.std(rewards)
             rewards = np.divide(rewards, rewards_std, out=np.zeros_like(rewards), where=rewards_std!=0)
 
@@ -262,7 +274,7 @@ class PGAgent(Agent):
         
         loss = self.model.fit(states, targets, epochs=1, verbose=0, shuffle=True)
         self.loss_buffer.append(loss.history['loss'])
-        
+
         self.model.save(self.model_file)
         
         self._reset_experience_buffer()
