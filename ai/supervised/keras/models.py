@@ -71,7 +71,7 @@ def conv_model(l1=0.00000, l2=0.0001):
     models['gray-diff'] = Sequential([
                 Conv2D(input_shape=(1, 128, 128),
                        name='conv1',
-                       filters=8,
+                       filters=16,
                        kernel_size=8,
                        strides=4,
                        activation='relu',
@@ -80,7 +80,7 @@ def conv_model(l1=0.00000, l2=0.0001):
                 BatchNormalization(name='batchnorm1', axis=1),
 
                 Conv2D(name='conv2',
-                       filters=16,
+                       filters=24,
                        kernel_size=4,
                        strides=2,
                        activation='relu',
@@ -89,7 +89,7 @@ def conv_model(l1=0.00000, l2=0.0001):
                 BatchNormalization(name='batchnorm2', axis=1),
 
                 Conv2D(name='conv3',
-                       filters=24,
+                       filters=32,
                        kernel_size=4,
                        strides=1,
                        activation='relu',
@@ -98,7 +98,7 @@ def conv_model(l1=0.00000, l2=0.0001):
                 BatchNormalization(name='batchnorm3', axis=1),
 
                 Conv2D(name='conv4',
-                       filters=32,
+                       filters=48,
                        kernel_size=4,
                        strides=1,
                        activation='relu',

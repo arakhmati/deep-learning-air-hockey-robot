@@ -8,7 +8,7 @@ from skvideo.io import FFmpegWriter
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('-f', '--data_file', help='data file to visualize')
+    parser.add_argument('-f', '--data_file', type=str, required=True, help='data file to visualize')
     args = parser.parse_args()
     data_file = args.data_file
     
@@ -32,5 +32,5 @@ if __name__ == '__main__':
     for i, state in enumerate(states):
         writer.writeFrame(state)
         bar.update(i)
-    print('%s generated succesfully' % video_file)        
+    print('\n%s generated succesfully' % video_file)        
         
