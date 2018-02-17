@@ -8,9 +8,9 @@ Real-time air hockey robot controlled by a convolutional neural network.
 2. [gym-air-hockey](https://github.com/arakhmat/gym-air-hockey) is an OpenAI Gym Environment Wrapper around [Air Hockey Game Simulator](https://github.com/arakhmat/air-hockey). It is used to determine the rewards, as well as process actions and observations.
 3. [Perception](https://github.com/arakhmat/perception) is an Android Application that is used to control the robot during the game. It captures and processes the frames, infers the prediction of the CNN and sends it to Arduino via BluetoothLE.
 4. This repository contains scripts used to generate labeled frames, pretrain CNN using supervised learning, further train CNN using reinforcement learning, convert keras model to caffe2 using [keras-to-caffe2 converter](https://github.com/arakhmat/keras-to-caffe2), visualize CNN filters and layer activations using [unveiler](https://github.com/arakhmat/unveiler) and etc.
-#### Example of Frames Generated Using the Simulation
+#### Example of Frames Generated Using [Air Hockey Game Simulator](https://github.com/arakhmat/air-hockey)
 ![alt text](https://github.com/arakhmat/41X/blob/master/simulation.png)
-#### Example of Frames Captured Using Perception
+#### Example of Frames Captured Using [Perception](https://github.com/arakhmat/perception)
 ![alt text](https://github.com/arakhmat/41X/blob/master/phone.png)
 ### Prerequisites
 [Python3](https://www.anaconda.com/download/)  
