@@ -43,7 +43,7 @@ if __name__ == "__main__":
     training_interval = 25
     copy_interval = 2500
     
-    batch_size = 64
+    batch_size = 32
     discount_rate = 0.99
     buffer_size = 10000 if config.mode == 'rgb' else 60000
     eps_min = 0.1

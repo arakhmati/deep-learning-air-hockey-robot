@@ -9,9 +9,9 @@ Real-time air hockey robot controlled by a convolutional neural network.
 3. [Perception](https://github.com/arakhmat/perception) is an Android Application that is used to control the robot during the game. It captures and processes the frames, infers the prediction of the CNN and sends it to Arduino via BluetoothLE.
 4. This repository contains scripts used to generate labeled frames, pretrain CNN using supervised learning, further train CNN using reinforcement learning, convert keras model to caffe2 using [keras-to-caffe2 converter](https://github.com/arakhmat/keras-to-caffe2), visualize CNN filters and layer activations using [unveiler](https://github.com/arakhmat/unveiler) and etc.
 #### Example of Frames Generated Using [Air Hockey Game Simulator](https://github.com/arakhmat/air-hockey)
-![alt text](https://github.com/arakhmat/41X/blob/master/simulation.png)
+![alt text](https://github.com/arakhmat/41X/blob/master/images/simulation.png)
 #### Example of Frames Captured Using [Perception](https://github.com/arakhmat/perception)
-![alt text](https://github.com/arakhmat/41X/blob/master/phone.png)
+![alt text](https://github.com/arakhmat/41X/blob/master/images/phone.png)
 ### Prerequisites
 [Python3](https://www.anaconda.com/download/)  
 [Android Studio](https://developer.android.com/studio/index.html)  

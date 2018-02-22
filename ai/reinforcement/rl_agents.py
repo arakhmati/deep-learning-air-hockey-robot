@@ -185,6 +185,8 @@ class DDQNAgent(Agent):
         row_indices = np.arange(targets.shape[0])
         targets[row_indices, actions] = rewards + (1 - done) * self.discount_rate * next_q_values[row_indices, next_actions]
 
+        targets = np.clip(targets, -1.0, 1.0)
+
         loss = self.model.fit(states, targets, epochs=1, verbose=0, shuffle=True)
         self.loss_buffer.append(loss.history['loss'])
 
