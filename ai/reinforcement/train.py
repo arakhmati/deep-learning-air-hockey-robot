@@ -48,7 +48,7 @@ if __name__ == "__main__":
     buffer_size = 10000 if config.mode == 'rgb' else 60000
     eps_min = 0.1
     eps_max = 0.99
-    eps_decay_steps = 1000000   
+    eps_decay_steps = 100000   
 
     env = gym.make('AirHockey-v0')
     env.update(mode=config.mode)
