@@ -39,7 +39,7 @@ if __name__ == "__main__":
     robot_actions = deque(maxlen=n_states)
     human_actions = deque(maxlen=n_states)
 
-    reset = True
+    reset = False
     bar = progressbar.ProgressBar(max_value=n_states)
     for i in range(n_states):
         if any([event.type == pygame.QUIT for event in pygame.event.get()]): break
@@ -54,7 +54,7 @@ if __name__ == "__main__":
         robot_actions.append(game_info['robot_action'])
         human_actions.append(game_info['human_action'])
 
-        if terminal:
+        if terminal or i % 200 == 0:
             reset = True
         
         bar.update(i)
