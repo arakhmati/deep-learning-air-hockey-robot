@@ -25,7 +25,7 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     parser.add_argument('-f', '--data_file',  type=str, required=True, help='file with training data')
-    parser.add_argument('-e', '--n_epochs',   type=int, default=100,   help='number of epochs')
+    parser.add_argument('-e', '--n_epochs',   type=int, default=15,    help='number of epochs')
     parser.add_argument('-b', '--batch_size', type=int, default=128,   help='batch size')
     args = parser.parse_args()
     data_file   = args.data_file
