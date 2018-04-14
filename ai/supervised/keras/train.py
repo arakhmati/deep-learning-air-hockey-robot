@@ -14,6 +14,7 @@ import argparse
 
 from data_utils import load_data
 
+
 models_dir = dir_path + '/models/' + config.mode + '/'
 robot_model_name = 'robot_model'
 human_model_name = 'human_model'
@@ -25,7 +26,7 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     parser.add_argument('-f', '--data_file',  type=str, required=True, help='file with training data')
-    parser.add_argument('-e', '--n_epochs',   type=int, default=15,    help='number of epochs')
+    parser.add_argument('-e', '--n_epochs',   type=int, default=20,    help='number of epochs')
     parser.add_argument('-b', '--batch_size', type=int, default=128,   help='batch size')
     args = parser.parse_args()
     data_file   = args.data_file
@@ -44,6 +45,7 @@ if __name__ == "__main__":
     from keras.callbacks import TensorBoard
     from keras.utils.np_utils import to_categorical
     from sklearn.metrics import confusion_matrix, classification_report
+    from sklearn.model_selection import train_test_split
     from models import conv_model
     from metrics import fmeasure, recall, precision
 
@@ -58,6 +60,7 @@ if __name__ == "__main__":
     else:
         print('Creating new model.')
         robot_model = conv_model()
+    robot_model.summary()
 
     model_list  =  [robot_model]
     actions_list = [robot_actions]
@@ -76,16 +79,18 @@ if __name__ == "__main__":
         model_list  += [robot_model]
         actions_list += [robot_actions]
 
+    x_train, x_test, y_train, y_test = train_test_split(states, robot_actions)
+
     for model, actions in zip(model_list, actions_list):
 
-        history = model.fit(states, actions,
+        history = model.fit(x_train, y_train,
                              epochs=n_epochs,
                              batch_size=batch_size,
                              shuffle=True,
                              verbose=1)
 
-        logits = model.predict(states, batch_size=batch_size)
-        y = np.argmax(actions, axis=1)
+        logits = model.predict(x_test, batch_size=batch_size)
+        y = np.argmax(y_test, axis=1)
         p = np.argmax(logits,  axis=1)
         print(confusion_matrix(y, p))
         print(classification_report(y, p))

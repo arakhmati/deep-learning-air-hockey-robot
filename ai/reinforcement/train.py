@@ -32,23 +32,27 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('-m', '--pretrained_model_file', type=str, required=True, help='file with the pretrained model')
     parser.add_argument('-a', '--agent', type=str, default='ddqn', choices=['ddqn', 'pg'], help='reinforcement learning agent')
+    parser.add_argument('-d', '--debug', action='store_true', help='reinforcement learning agent')
     args = parser.parse_args()
-    pretrained_model_file = args.pretrained_model_file
-    print(pretrained_model_file)
-    agent_class = args.agent
 
-    n_episodes = 200000
-    episode_length = 200
+    pretrained_model_file = args.pretrained_model_file
+    agent_class = args.agent
+    debug = args.debug
+
+    print(pretrained_model_file)
+
+    n_episodes = 2000000
+    episode_length = 256
     training_start = 100
     training_interval = 25
     copy_interval = 2500
     
-    batch_size = 32
-    discount_rate = 0.99
+    batch_size = 32 if agent_class == 'ddqn' else episode_length
+    discount_rate = 0.98
     buffer_size = 10000 if config.mode == 'rgb' else 60000
-    eps_min = 0.1
+    eps_min = 0.05
     eps_max = 0.99
-    eps_decay_steps = 100000   
+    eps_decay_steps = 100000
 
     env = gym.make('AirHockey-v0')
     env.update(mode=config.mode)
@@ -89,7 +93,7 @@ if __name__ == "__main__":
             
             action = agent.act(state)
             
-            next_state, reward, done, info = env.step(action)
+            next_state, reward, done, info = env.step(action, debug=debug)
             reward_sum += reward
             
             # Store data to experience buffer
