@@ -24,8 +24,8 @@ Real-time air hockey robot controlled by a convolutional neural network.
 [unveiler](https://github.com/arakhmat/unveiler)
 ### Download and Install
 ```
-git clone --recursive https://github.com/arakhmat/41X
-cd 41X
+git clone --recursive https://github.com/arakhmat/deep-learning-air-hockey-robot
+cd deep-learning-air-hockey-robot
 cd air-hockey; pip install -e .; cd ..;
 cd gym-air-hockey; pip install -e .; cd ..;
 ```
