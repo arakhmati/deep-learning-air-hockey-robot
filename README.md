@@ -1,4 +1,4 @@
-# 41X - Deep Learning Air Hockey Robot
+# Deep Learning Air Hockey Robot
 Real-time air hockey robot controlled by a convolutional neural network.
 
 ### Main Components
